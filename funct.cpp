@@ -1,8 +1,10 @@
 #include <random>
 #include <iostream>
+#include <Eigen/Dense>
 
+
+using namespace Eigen;
 using namespace std;
-
 
 
 void print_matrix(float** m, int n1, int n2){
@@ -56,15 +58,23 @@ float** generate_random_sparse_matrix(int n1, int n2, float d){
     return m;
 }
 
-int main() {
+float** build_sparse_contractive_matrix(int n1, int n2){
+    MatrixXd mat = (MatrixXd::Random(n1,n2).array() > 0.9).cast<double>() * MatrixXd::Random(n1,n2).array();
+    auto rho_act = abs(mat.eigenvalues().array())[0];
 
-    int n1 = 10;
-    int n2 = 10;
-    float d = 0.5;
+    if(rho_act<0.1){
+        cout<< "recurrent matrix creation failed bc spectral radius too small";
+        throw;
+    }
 
-    float** m = generate_random_sparse_matrix(n1,n2,d);
-    
-    print_matrix(m,n1,n2);
+    mat = mat / rho_act;
 
+    auto m = zeros(n1,n2);
+    for(int i=0;i<n1;i++){
+        for (int j = 0; j < n2; j++){
+            m[i][j] = mat(i,j);
+        }
+    }
+    return m;
 }
 
