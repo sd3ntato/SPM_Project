@@ -1,7 +1,6 @@
-#include "funct.h"
 #include "ESN.h"
 
-ESN::ESN(int Nr, int Ny, int Nu, float rho, float r_d) { // Constructor with parameters
+ESN::ESN(int Nr, int Ny, int Nu, float rho, float r_d) {
     this->Nr = Nr;
     this->Ny = Ny;
     this->Nu = Nu;

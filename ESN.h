@@ -1,4 +1,5 @@
- 
+#include "linear_algebra.h"
+
 class ESN {  
   public:      
     ESN(int Nr = 100, int Ny = 1, int Nu = 1, float rho = 0.9, float r_d = 0.1); 
@@ -7,7 +8,7 @@ class ESN {
     int Nu; // Number inputs
     int Ny; // Number outputs
     float r_density; // density of recurrent matrix
-    float** Win; // input-to-reservoir matrix
-    float** W; //recurrent matrix
-    float** x; //state
+    Matrix_wrapper Win; // input-to-reservoir matrix
+    Matrix_wrapper W; //recurrent matrix
+    Matrix_wrapper x; //state
 };
