@@ -10,4 +10,6 @@ ESN::ESN(int Nr, int Ny, int Nu, float rho, float r_d) { // Constructor with par
 
     this->W = build_sparse_contractive_matrix(Nr,Nr);
     this->Win = generate_random_sparse_matrix(Nr,Nu,0.7);
+
+    this->x = zeros(Nr,1);
 }
