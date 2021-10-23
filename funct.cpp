@@ -1,6 +1,7 @@
 #include <random>
 #include <iostream>
 #include <Eigen/Dense>
+#include <assert.h> 
 
 
 using namespace Eigen;
@@ -24,11 +25,14 @@ float** zeros(int n1, int n2){
     float **m = new float*[n1];
     for(int i=0;i<n1;i++){
         m[i] = new float[n2];
+        for(int j=0;j<n2;j++){
+            m[i][j]=0;
+        }
     }
     return m;
 }
 
-float** generate_random_sparse_matrix(int n1, int n2, float d){
+float** generate_random_sparse_matrix(int n1, int n2, float d, float interval_start=-1, float interval_stop=1){
 
     // matrix with all zeros
     float** m = zeros(n1,n2);
@@ -38,21 +42,21 @@ float** generate_random_sparse_matrix(int n1, int n2, float d){
 
     // generate a list of n random values using uniform distribution on floats
     float* numbers = new float[n];
-    int* positions_1 = new int[n];
-    int* positions_2 = new int[n];
+    int* positions = new int[n1 * n2];
     random_device rd;  // Will be used to obtain a seed for the random number engine
     mt19937 gen(rd());
-    uniform_real_distribution<> fdis(1.0, 2.0);
-    uniform_int_distribution<> idis1(0, n1-1);
-    uniform_int_distribution<> idis2(0, n2-2);
+    uniform_real_distribution<> fdis(interval_start, interval_stop);
+    uniform_int_distribution<> idis(0, n1*n2-1);
     for(int i=0; i<n; i++){
         numbers[i] = fdis(gen);
-        positions_1[i] = idis1(gen); // non funziona quando ricapita lo stesso numero
-        positions_2[i] = idis2(gen);
+        positions[i] = idis(gen); // non funziona quando ricapita lo stesso numero
     }
 
     for(int i=0;i<n;i++){
-        m[positions_1[i]][positions_2[i]] = numbers[i];
+        int p = positions[i];
+        int row = (int) floor(p/n2);
+        int col = p % n2;
+        m[row][col] = numbers[i];
     }
 
     return m;
