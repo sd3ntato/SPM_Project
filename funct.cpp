@@ -32,6 +32,15 @@ float** zeros(int n1, int n2){
     return m;
 }
 
+bool contains(int* l, int n, int t){
+    for(int i=0;i<n;i++){
+        if(l[i]==t){
+            return true;
+        }
+    }
+    return false;
+}
+
 float** generate_random_sparse_matrix(int n1, int n2, float d, float interval_start=-1, float interval_stop=1){
 
     // matrix with all zeros
@@ -48,10 +57,21 @@ float** generate_random_sparse_matrix(int n1, int n2, float d, float interval_st
     uniform_real_distribution<> fdis(interval_start, interval_stop);
     uniform_int_distribution<> idis(0, n1*n2-1);
     for(int i=0; i<n; i++){
-        numbers[i] = fdis(gen);
-        positions[i] = idis(gen); // non funziona quando ricapita lo stesso numero
+        numbers[i] = fdis(gen);// decido che numero voglio inserire
+
+        /* per la posizione del numero: non posso scegliere la stessa posizione due volte,
+        // che significa che la lista positions non puo' avere duplicati.
+        // modo molto stupido per inserire senza fare duplicati: prima di inserire controllo se 
+        // il numero che sto inserendo l'ho gia messo. Se l'ho gia messo non va bene quindi ne prendo un altro
+        */
+        int p = idis(gen); // prendo un numero a caso
+        while( contains(positions,n1*n2,p) ){ //controllo se gia sta nella lista
+            p = idis(gen); // se ho verificato che quello che volevo inserire gia sta nella lista ne prendo un altro
+        } // alla fine sono sicuro che not constains(positions,p) quindi posso inserire tranquillamente p nella lista
+        positions[i] = p; 
     }
 
+    // inserisco i numeri che ho scelto, nelle relative posizioni all'interno della matrice
     for(int i=0;i<n;i++){
         int p = positions[i];
         int row = (int) floor(p/n2);
