@@ -42,6 +42,18 @@ Matrix_wrapper zeros(int n1, int n2){
     return mat;
 }
 
+Matrix_wrapper ones(int n1, int n2){
+    float **m = new float*[n1];
+    for(int i=0;i<n1;i++){
+        m[i] = new float[n2];
+        for(int j=0;j<n2;j++){
+            m[i][j]=1;
+        }
+    }
+    Matrix_wrapper mat = Matrix_wrapper(m,n1,n2);
+    return mat;
+}
+
 bool contains(int* l, int n, int t){
     for(int i=0;i<n;i++){
         if(l[i]==t){
@@ -153,5 +165,20 @@ Matrix_wrapper vstack(Matrix_wrapper m1, Matrix_wrapper m2){
             res.m[ i + m1.n1 ][j] = m2.m[i][j];
         }
     }
+    return res;
+}
+
+Matrix_wrapper elementwise_sum(Matrix_wrapper m1, Matrix_wrapper m2){
+    if(m1.n1 != m2.n1 or m1.n2 != m2.n2){
+        throw "elementwise sum: invalid dimensions";
+    }
+
+    Matrix_wrapper res = zeros(m1.n1, m1.n2);
+    for(int i=0; i<m1.n1;i++){
+        for(int j=0; j<m1.n2; j++){
+            res.m[i][j] = m1.m[i][j] + m2.m[i][j];
+        }
+    }
+
     return res;
 }
