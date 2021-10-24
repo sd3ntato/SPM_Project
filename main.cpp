@@ -1,18 +1,24 @@
 #include <iostream>
 #include <random>
 #include "ESN.h"
+#include <math.h>
 
 using namespace std;
 
 int main() {
 
-    Matrix_wrapper m1 = ones(3,3); m1.m[1][1] = 4;
-    Matrix_wrapper m2 = ones(3,3);
-    Matrix_wrapper m3 = m1|m2;
+    auto m1 = ones(3,3);
+    auto m2 = ones(3,3);
 
-    print_matrix(m3);
+    //print_matrix( m1+m2 );
+    //print_matrix( m1|m2 );
 
 
+    auto n = ESN();
+    for(int i=0;i<1000;i++){
+        n.compute_state(ones(1,1));
+    }
+    print_matrix( n.x );
 
     cout << "\nftt!\n";
     return 0;

@@ -3,6 +3,7 @@
 #include <iostream>
 #include <Eigen/Dense>
 #include <assert.h> 
+#include <math.h>
 
 
 using namespace Eigen;
@@ -13,6 +14,45 @@ Matrix_wrapper::Matrix_wrapper(float** m, int n1, int n2){
     this->n1 = n1;
     this->n2 = n2;
 }
+
+Matrix_wrapper Matrix_wrapper::operator|( const Matrix_wrapper & m2){
+    if(this->n2 != m2.n1){
+        throw "dot product: invalid dimensions!";
+    }
+
+    Matrix_wrapper res = zeros(this->n1, m2.n2);
+    for(int i=0; i<this->n1; i++){ // scorre le righe della prima matrice
+        for(int j=0; j<m2.n2; j++){ // scorren le colonne della seconda matrice
+            float s = 0; // accumulatore
+            float c1 = 0;
+            float c2 = 0;
+            for(int cnt=0; cnt<this->n2; cnt++){ //contatore per scorrere riga-colonna
+                c1 = this->m[i][cnt];
+                c2 =  m2.m[cnt][j];
+                s = s + ( c1 * c2 );
+            }
+            res.m[i][j] = s;
+        }
+    }
+
+    return res;
+}
+
+Matrix_wrapper Matrix_wrapper::operator+( const Matrix_wrapper & m2){
+    if(this->n1 != m2.n1 or this->n2 != m2.n2){
+        throw "elementwise sum: invalid dimensions";
+    }
+
+    Matrix_wrapper res = zeros(this->n1, this->n2);
+    for(int i=0; i<this->n1;i++){
+        for(int j=0; j<this->n2; j++){
+            res.m[i][j] = this->m[i][j] + m2.m[i][j];
+        }
+    }
+
+    return res;
+}
+
 
 void print_matrix(Matrix_wrapper mat){
     float** m = mat.m;
@@ -131,25 +171,6 @@ Matrix_wrapper build_sparse_contractive_matrix(int n1, int n2){
     return mm;
 }
 
-Matrix_wrapper Matrix_wrapper::operator|( const Matrix_wrapper & m2){
-    if(this->n2 != m2.n1){
-        throw "dot product: invalid dimensions!";
-    }
-
-    Matrix_wrapper res = zeros(this->n1, m2.n2);
-    for(int i=0; i<this->n1; i++){ // scorre le righe della prima matrice
-        for(int j=0; j<m2.n2; j++){ // scorren le colonne della seconda matrice
-            int s = 0; // accumulatore
-            for(int cnt=0; cnt<this->n2; cnt++){ //contatore per scorrere riga-colonna
-                s = s + (this->m[i][cnt] * m2.m[cnt][j] );
-            }
-            res.m[i][j] = s;
-        }
-    }
-
-    return res;
-}
-
 Matrix_wrapper vstack(Matrix_wrapper m1, Matrix_wrapper m2){
     if(m1.n2 != m2.n2){
         throw "vstack: invalid dimensions!";
@@ -168,17 +189,23 @@ Matrix_wrapper vstack(Matrix_wrapper m1, Matrix_wrapper m2){
     return res;
 }
 
-Matrix_wrapper Matrix_wrapper::operator+( const Matrix_wrapper & m2){
-    if(this->n1 != m2.n1 or this->n2 != m2.n2){
-        throw "elementwise sum: invalid dimensions";
-    }
 
-    Matrix_wrapper res = zeros(this->n1, this->n2);
-    for(int i=0; i<this->n1;i++){
-        for(int j=0; j<this->n2; j++){
-            res.m[i][j] = this->m[i][j] + m2.m[i][j];
+Matrix_wrapper elementwise_tanh( Matrix_wrapper m1){
+    Matrix_wrapper res = zeros(m1.n1, m1.n2);
+    for(int i=0;i<m1.n1;i++){
+        for(int j=0;j<m1.n2;j++){
+            res.m[i][j] = tanh( m1.m[i][j] );
         }
     }
+    return res;
+}
 
+Matrix_wrapper copy( Matrix_wrapper m1){
+    Matrix_wrapper res = zeros(m1.n1,m1.n2);
+    for(int i=0; i<m1.n1; i++){
+        for(int j=0; j<m1.n2; j++){
+            res.m[i][j] = m1.m[i][j];
+        }
+    }
     return res;
 }
