@@ -11,4 +11,6 @@ class ESN {
     Matrix_wrapper Win; // input-to-reservoir matrix
     Matrix_wrapper W; //recurrent matrix
     Matrix_wrapper x; //state
+
+    Matrix_wrapper compute_state(Matrix_wrapper u);
 };

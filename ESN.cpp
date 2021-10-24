@@ -12,3 +12,7 @@ ESN::ESN(int Nr, int Ny, int Nu, float rho, float r_d) {
 
     this->x = zeros(Nr,1);
 }
+
+Matrix_wrapper ESN::compute_state(Matrix_wrapper u){
+    return Matrix_wrapper(nullptr,1,1);
+}

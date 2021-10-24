@@ -62,7 +62,13 @@ Matrix_wrapper generate_random_sparse_matrix(int n1, int n2, float d, float inte
 
     // generate a list of n random values using uniform distribution on floats
     float* numbers = new float[n];
-    int* positions = new int[n1 * n2];
+    int* positions = new int[n];
+
+    // put all positions to -1 so that whe rand number generator gets a 0 he put it in only one time
+    for(int i=0;i<n;i++){
+        positions[i] = -1;
+    }
+
     random_device rd;  // Will be used to obtain a seed for the random number engine
     mt19937 gen(rd());
     uniform_real_distribution<> fdis(interval_start, interval_stop);
@@ -115,7 +121,7 @@ Matrix_wrapper build_sparse_contractive_matrix(int n1, int n2){
 
 Matrix_wrapper dot(Matrix_wrapper m1, Matrix_wrapper m2){
     if(m1.n2 != m2.n1){
-        throw "invalid dimensions!";
+        throw "dot product: invalid dimensions!";
     }
 
     Matrix_wrapper res = zeros(m1.n1, m2.n2);
@@ -132,3 +138,20 @@ Matrix_wrapper dot(Matrix_wrapper m1, Matrix_wrapper m2){
     return res;
 }
 
+Matrix_wrapper vstack(Matrix_wrapper m1, Matrix_wrapper m2){
+    if(m1.n2 != m2.n2){
+        throw "vstack: invalid dimensions!";
+    }
+    Matrix_wrapper res = zeros(m1.n1+m2.n1, m1.n2);
+    for(int i=0; i<m1.n1; i++){
+        for(int j=0; j<m1.n2;j++){
+            res.m[i][j] = m1.m[i][j];
+        }
+    }
+    for(int i=0; i<m2.n1; i++){
+        for(int j=0; j<m1.n2; j++){
+            res.m[ i + m1.n1 ][j] = m2.m[i][j];
+        }
+    }
+    return res;
+}
