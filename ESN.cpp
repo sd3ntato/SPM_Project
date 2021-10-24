@@ -9,6 +9,7 @@ ESN::ESN(int Nr, int Ny, int Nu, float rho, float r_d) {
 
     this->W = build_sparse_contractive_matrix(Nr,Nr);
     this->Win = generate_random_sparse_matrix(Nr,Nu+1,0.7);
+    this->Wout = generate_random_sparse_matrix(Ny,Nr+1,0.7);
 
     this->x = zeros(Nr,1);
 }
@@ -19,4 +20,8 @@ Matrix_wrapper ESN::compute_state(Matrix_wrapper u){
     Matrix_wrapper out = elementwise_tanh( z );
     this->x = out;
     return copy(out);
+}
+
+Matrix_wrapper ESN::compute_output(Matrix_wrapper u){
+    return this->Wout | vstack( this->compute_state(u), ones(1,1) );
 }

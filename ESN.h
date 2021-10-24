@@ -10,7 +10,9 @@ class ESN {
     float r_density; // density of recurrent matrix
     Matrix_wrapper Win; // input-to-reservoir matrix
     Matrix_wrapper W; //recurrent matrix
+    Matrix_wrapper Wout; // readout
     Matrix_wrapper x; //state
 
     Matrix_wrapper compute_state(Matrix_wrapper u);
+    Matrix_wrapper compute_output(Matrix_wrapper u);
 };

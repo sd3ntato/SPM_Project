@@ -16,9 +16,9 @@ int main() {
 
     auto n = ESN();
     for(int i=0;i<1000;i++){
-        n.compute_state(ones(1,1));
+        n.compute_output(ones(1,1));
     }
-    print_matrix( n.x );
+    print_matrix( n.compute_output(ones(1,1)) );
 
     cout << "\nftt!\n";
     return 0;
