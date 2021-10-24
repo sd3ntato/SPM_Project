@@ -15,6 +15,6 @@ ESN::ESN(int Nr, int Ny, int Nu, float rho, float r_d) {
 
 Matrix_wrapper ESN::compute_state(Matrix_wrapper u){
     u = vstack(u, ones(1,1));
-    Matrix_wrapper z = dot( this->Win, u );
+    Matrix_wrapper z =  this->Win | u ;
     return Matrix_wrapper(nullptr,0,0);
 }

@@ -131,17 +131,17 @@ Matrix_wrapper build_sparse_contractive_matrix(int n1, int n2){
     return mm;
 }
 
-Matrix_wrapper dot(Matrix_wrapper m1, Matrix_wrapper m2){
-    if(m1.n2 != m2.n1){
+Matrix_wrapper Matrix_wrapper::operator|( const Matrix_wrapper & m2){
+    if(this->n2 != m2.n1){
         throw "dot product: invalid dimensions!";
     }
 
-    Matrix_wrapper res = zeros(m1.n1, m2.n2);
-    for(int i=0; i<m1.n1; i++){ // scorre le righe della prima matrice
+    Matrix_wrapper res = zeros(this->n1, m2.n2);
+    for(int i=0; i<this->n1; i++){ // scorre le righe della prima matrice
         for(int j=0; j<m2.n2; j++){ // scorren le colonne della seconda matrice
             int s = 0; // accumulatore
-            for(int cnt=0; cnt<m1.n2; cnt++){ //contatore per scorrere riga-colonna
-                s = s + (m1.m[i][cnt] * m2.m[cnt][j] );
+            for(int cnt=0; cnt<this->n2; cnt++){ //contatore per scorrere riga-colonna
+                s = s + (this->m[i][cnt] * m2.m[cnt][j] );
             }
             res.m[i][j] = s;
         }
@@ -168,15 +168,15 @@ Matrix_wrapper vstack(Matrix_wrapper m1, Matrix_wrapper m2){
     return res;
 }
 
-Matrix_wrapper elementwise_sum(Matrix_wrapper m1, Matrix_wrapper m2){
-    if(m1.n1 != m2.n1 or m1.n2 != m2.n2){
+Matrix_wrapper Matrix_wrapper::operator+( const Matrix_wrapper & m2){
+    if(this->n1 != m2.n1 or this->n2 != m2.n2){
         throw "elementwise sum: invalid dimensions";
     }
 
-    Matrix_wrapper res = zeros(m1.n1, m1.n2);
-    for(int i=0; i<m1.n1;i++){
-        for(int j=0; j<m1.n2; j++){
-            res.m[i][j] = m1.m[i][j] + m2.m[i][j];
+    Matrix_wrapper res = zeros(this->n1, this->n2);
+    for(int i=0; i<this->n1;i++){
+        for(int j=0; j<this->n2; j++){
+            res.m[i][j] = this->m[i][j] + m2.m[i][j];
         }
     }
 
