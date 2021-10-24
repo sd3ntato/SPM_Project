@@ -19,3 +19,4 @@ Matrix_wrapper build_sparse_contractive_matrix(int n1, int n2);
 Matrix_wrapper vstack(Matrix_wrapper m1, Matrix_wrapper m2);
 Matrix_wrapper elementwise_tanh( Matrix_wrapper m1);
 Matrix_wrapper copy( Matrix_wrapper m1);
+Matrix_wrapper from_array(float* a, int n);

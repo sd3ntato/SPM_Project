@@ -172,23 +172,28 @@ Matrix_wrapper build_sparse_contractive_matrix(int n1, int n2){
 }
 
 Matrix_wrapper vstack(Matrix_wrapper m1, Matrix_wrapper m2){
-    if(m1.n2 != m2.n2){
-        throw "vstack: invalid dimensions!";
-    }
-    Matrix_wrapper res = zeros(m1.n1+m2.n1, m1.n2);
-    for(int i=0; i<m1.n1; i++){
-        for(int j=0; j<m1.n2;j++){
-            res.m[i][j] = m1.m[i][j];
+    if(m1.m){
+        if(m1.n2 != m2.n2){
+            throw "vstack: invalid dimensions!";
         }
-    }
-    for(int i=0; i<m2.n1; i++){
-        for(int j=0; j<m1.n2; j++){
-            res.m[ i + m1.n1 ][j] = m2.m[i][j];
+        Matrix_wrapper res = zeros(m1.n1+m2.n1, m1.n2);
+        for(int i=0; i<m1.n1; i++){
+            for(int j=0; j<m1.n2;j++){
+                res.m[i][j] = m1.m[i][j];
+            }
         }
+        for(int i=0; i<m2.n1; i++){
+            for(int j=0; j<m1.n2; j++){
+                res.m[ i + m1.n1 ][j] = m2.m[i][j];
+            }
+        }
+        return res;
+    }else{
+        return m2;
     }
-    return res;
+    return Matrix_wrapper(nullptr,0,0);
 }
-
+    
 
 Matrix_wrapper elementwise_tanh( Matrix_wrapper m1){
     Matrix_wrapper res = zeros(m1.n1, m1.n2);
@@ -208,4 +213,11 @@ Matrix_wrapper copy( Matrix_wrapper m1){
         }
     }
     return res;
+}
+
+Matrix_wrapper from_array(float* a, int n){
+    float** m = new float*[1];
+    m[0] = a;
+    Matrix_wrapper mat = Matrix_wrapper(m,1,n);
+    return mat;
 }
