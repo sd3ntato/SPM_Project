@@ -113,3 +113,22 @@ Matrix_wrapper build_sparse_contractive_matrix(int n1, int n2){
     return mm;
 }
 
+Matrix_wrapper dot(Matrix_wrapper m1, Matrix_wrapper m2){
+    if(m1.n2 != m2.n1){
+        throw "invalid dimensions!";
+    }
+
+    Matrix_wrapper res = zeros(m1.n1, m2.n2);
+    for(int i=0; i<m1.n1; i++){ // scorre le righe della prima matrice
+        for(int j=0; j<m2.n2; j++){ // scorren le colonne della seconda matrice
+            int s = 0; // accumulatore
+            for(int cnt=0; cnt<m1.n2; cnt++){ //contatore per scorrere riga-colonna
+                s = s + (m1.m[i][cnt] * m2.m[cnt][j] );
+            }
+            res.m[i][j] = s;
+        }
+    }
+
+    return res;
+}
+
