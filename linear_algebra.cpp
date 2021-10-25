@@ -53,6 +53,51 @@ Matrix_wrapper Matrix_wrapper::operator+( const Matrix_wrapper & m2){
     return res;
 }
 
+Matrix_wrapper Matrix_wrapper::operator*( const Matrix_wrapper & m2){
+    if(this->n1 != m2.n1 or this->n2 != m2.n2){
+        throw "elementwise multiplication: invalid dimensions";
+    }
+
+    Matrix_wrapper res = zeros(this->n1, this->n2);
+    for(int i=0; i<this->n1;i++){
+        for(int j=0; j<this->n2; j++){
+            res.m[i][j] = this->m[i][j] * m2.m[i][j];
+        }
+    }
+
+    return res;
+}
+
+Matrix_wrapper Matrix_wrapper::operator*( const float & k){
+
+    Matrix_wrapper res = zeros(this->n1, this->n2);
+    for(int i=0; i<this->n1;i++){
+        for(int j=0; j<this->n2; j++){
+            res.m[i][j] = this->m[i][j] * k;
+        }
+    }
+    return res;
+}
+
+Matrix_wrapper Matrix_wrapper::operator+( const float & k ){
+ 
+    Matrix_wrapper res = zeros(this->n1, this->n2);
+    for(int i=0; i<this->n1;i++){
+        for(int j=0; j<this->n2; j++){
+            res.m[i][j] = this->m[i][j] + k;
+        }
+    }
+    return res;
+}
+
+Matrix_wrapper Matrix_wrapper::get_line(int i){
+    if(i > this->n1){
+        throw "Martix_wrapper::get_line: invalid argument grater than number of lines available";
+    }
+    float** lines = new float*[1];
+    lines[0] = this->m[i];
+    return Matrix_wrapper(lines,1,this->n2); 
+}
 
 void print_matrix(Matrix_wrapper mat){
     float** m = mat.m;
@@ -220,4 +265,12 @@ Matrix_wrapper from_array(float* a, int n){
     m[0] = a;
     Matrix_wrapper mat = Matrix_wrapper(m,1,n);
     return mat;
+}
+
+Matrix_wrapper eye(int n){
+    Matrix_wrapper res = zeros(n,n);
+    for(int i=0; i<n; i++){
+        res.m[i][i] = 1.0;
+    }
+    return res;
 }

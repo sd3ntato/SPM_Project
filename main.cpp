@@ -18,10 +18,29 @@ namespace plt = matplotlibcpp;
 Matrix_wrapper read_dataset(string filename);
 
 int main() {
+    //plt::plot({1,3,2,4});
+    //plt::show();
+    //print_matrix(dataset.get_line(10));
 
+    
     Matrix_wrapper dataset = read_dataset("BTCUSDT-1m-data.csv");
-    plt::plot({1,3,2,4});
-    plt::show();
+
+    int Nr = 100;
+    int Nu = 4;
+    int Ny = 4;
+    float lambda = 0.1;
+    float nabla = 0.01;
+    int i=0;
+
+    ESN n = ESN(Nr = Nr, Nu = Nu, Ny = Ny);
+    Matrix_wrapper P = eye(Nr)*nabla;
+    n.Wout = zeros(Ny,Nu); Matrix_wrapper y = zeros(4,1);
+    while(i<dataset.n2){
+        Matrix_wrapper candle = dataset.get_line(i);
+
+        i++;
+    }
+
 
     cout << "\nftt!\n";
     return 0;
