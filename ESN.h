@@ -15,4 +15,5 @@ class ESN {
 
     Matrix_wrapper compute_state(Matrix_wrapper u);
     Matrix_wrapper compute_output(Matrix_wrapper u);
+    Matrix_wrapper compute_output();
 };

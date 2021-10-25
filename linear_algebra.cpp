@@ -17,7 +17,9 @@ Matrix_wrapper::Matrix_wrapper(float** m, int n1, int n2){
 
 Matrix_wrapper Matrix_wrapper::operator|( const Matrix_wrapper & m2){
     if(this->n2 != m2.n1){
-        throw "dot product: invalid dimensions!";
+        cout<< "dot product: invalid dimensions : left matrix "<< this->n1 <<" " << this->n2  <<endl;
+        cout<< "dot product: invalid dimensions : right matrix "<< m2.n1 <<" " << m2.n2  <<endl;
+        assert(false);
     }
 
     Matrix_wrapper res = zeros(this->n1, m2.n2);
@@ -40,7 +42,9 @@ Matrix_wrapper Matrix_wrapper::operator|( const Matrix_wrapper & m2){
 
 Matrix_wrapper Matrix_wrapper::operator+( const Matrix_wrapper & m2){
     if(this->n1 != m2.n1 or this->n2 != m2.n2){
-        throw "elementwise sum: invalid dimensions";
+        cout<< "elementwise sum: invalid dimensions : left matrix "<< this->n1 <<" " << this->n2  <<endl;
+        cout<< "elementwise sum: invalid dimensions : right matrix "<< m2.n1 <<" " << m2.n2  <<endl;
+        assert(false);
     }
 
     Matrix_wrapper res = zeros(this->n1, this->n2);
@@ -55,13 +59,30 @@ Matrix_wrapper Matrix_wrapper::operator+( const Matrix_wrapper & m2){
 
 Matrix_wrapper Matrix_wrapper::operator*( const Matrix_wrapper & m2){
     if(this->n1 != m2.n1 or this->n2 != m2.n2){
-        throw "elementwise multiplication: invalid dimensions";
+        cout<< "elementwise multiplication: invalid dimensions"<<endl;
+        assert(false);
     }
 
     Matrix_wrapper res = zeros(this->n1, this->n2);
     for(int i=0; i<this->n1;i++){
         for(int j=0; j<this->n2; j++){
             res.m[i][j] = this->m[i][j] * m2.m[i][j];
+        }
+    }
+
+    return res;
+}
+
+Matrix_wrapper Matrix_wrapper::operator-( const Matrix_wrapper & m2 ){
+    if(this->n1 != m2.n1 or this->n2 != m2.n2){
+        cout<< "elementwise subtraction: invalid dimensions"<<endl;
+        assert(false);
+    }
+
+    Matrix_wrapper res = zeros(this->n1, this->n2);
+    for(int i=0; i<this->n1;i++){
+        for(int j=0; j<this->n2; j++){
+            res.m[i][j] = this->m[i][j] - m2.m[i][j];
         }
     }
 
@@ -90,13 +111,43 @@ Matrix_wrapper Matrix_wrapper::operator+( const float & k ){
     return res;
 }
 
+Matrix_wrapper Matrix_wrapper::operator/( const float & k ){
+ 
+    Matrix_wrapper res = zeros(this->n1, this->n2);
+    for(int i=0; i<this->n1;i++){
+        for(int j=0; j<this->n2; j++){
+            res.m[i][j] = this->m[i][j] / k;
+        }
+    }
+    return res;
+}
+
 Matrix_wrapper Matrix_wrapper::get_line(int i){
     if(i > this->n1){
-        throw "Martix_wrapper::get_line: invalid argument grater than number of lines available";
+        cout<< "Martix_wrapper::get_line: invalid argument grater than number of lines available"<<endl;
+        assert(false);
     }
     float** lines = new float*[1];
     lines[0] = this->m[i];
     return Matrix_wrapper(lines,1,this->n2); 
+}
+
+Matrix_wrapper Matrix_wrapper::transpose(){
+    Matrix_wrapper res = zeros(this->n2, this->n1);
+    for(int i=0; i < this->n1; i++){
+        for(int j=0; j< this->n2; j++){
+            res.m[j][i] = this->m[i][j];
+        }
+    }
+    return res;
+}
+
+float Matrix_wrapper::to_float(){
+    if(not ( this->n1 ==1 and this->n2 ==1)){
+        cout<< "Matrix_wrapper::operator float: invalid size, not (1,1)"<<endl;
+        assert(false);
+    }
+    return this->m[0][0];
 }
 
 void print_matrix(Matrix_wrapper mat){
@@ -200,8 +251,8 @@ Matrix_wrapper build_sparse_contractive_matrix(int n1, int n2){
     auto rho_act = abs(mat.eigenvalues().array())[0];
 
     if(rho_act<0.1){
-        cout<< "recurrent matrix creation failed bc spectral radius too small";
-        throw;
+        cout<< "recurrent matrix creation failed bc spectral radius too small"<<endl;
+        assert(false);
     }
 
     mat = mat / rho_act;
@@ -219,7 +270,8 @@ Matrix_wrapper build_sparse_contractive_matrix(int n1, int n2){
 Matrix_wrapper vstack(Matrix_wrapper m1, Matrix_wrapper m2){
     if(m1.m){
         if(m1.n2 != m2.n2){
-            throw "vstack: invalid dimensions!";
+            cout<< "vstack: invalid dimensions!"<<endl;
+            assert(false);
         }
         Matrix_wrapper res = zeros(m1.n1+m2.n1, m1.n2);
         for(int i=0; i<m1.n1; i++){

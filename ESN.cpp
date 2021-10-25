@@ -25,3 +25,7 @@ Matrix_wrapper ESN::compute_state(Matrix_wrapper u){
 Matrix_wrapper ESN::compute_output(Matrix_wrapper u){
     return this->Wout | vstack( this->compute_state(u), ones(1,1) );
 }
+
+Matrix_wrapper ESN::compute_output(){
+    return this->Wout | vstack( this->x, ones(1,1) );
+}

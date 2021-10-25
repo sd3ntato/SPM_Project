@@ -10,9 +10,13 @@ class Matrix_wrapper{
    Matrix_wrapper operator+( const Matrix_wrapper & m2 );
    Matrix_wrapper operator|( const Matrix_wrapper & m2 );
    Matrix_wrapper operator*( const Matrix_wrapper & m2 );
+   Matrix_wrapper operator-( const Matrix_wrapper & m2 );
    Matrix_wrapper operator*( const float & k );
    Matrix_wrapper operator+( const float & k );
+   Matrix_wrapper operator/( const float & k );
    Matrix_wrapper get_line( int i );
+   Matrix_wrapper transpose( );
+   float to_float();
 };
 
 void print_matrix(Matrix_wrapper m);

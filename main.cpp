@@ -21,7 +21,6 @@ int main() {
     //plt::plot({1,3,2,4});
     //plt::show();
     //print_matrix(dataset.get_line(10));
-
     
     Matrix_wrapper dataset = read_dataset("BTCUSDT-1m-data.csv");
 
@@ -33,11 +32,30 @@ int main() {
     int i=0;
 
     ESN n = ESN(Nr = Nr, Nu = Nu, Ny = Ny);
-    Matrix_wrapper P = eye(Nr)*nabla;
-    n.Wout = zeros(Ny,Nu); Matrix_wrapper y = zeros(4,1);
-    while(i<dataset.n2){
-        Matrix_wrapper candle = dataset.get_line(i);
+    Matrix_wrapper P = eye(Nr+1)* (1/nabla);
+    n.Wout = zeros(Ny,Nr+1); Matrix_wrapper y = zeros(4,1);
+    while(i<dataset.n2-1){
+        
+        Matrix_wrapper u = dataset.get_line(i).transpose(); // shape(Nu,1)
+        Matrix_wrapper d = dataset.get_line(i+1).transpose(); //shape(Ny,1)
+        
+        Matrix_wrapper x = vstack( n.compute_state( u ) , ones(1,1) ) ; //shape(Nr,1)
 
+        Matrix_wrapper y = n.compute_output( ); //shape(Ny,1)
+
+        Matrix_wrapper psi = d - y; // shape(Ny,1)
+
+        Matrix_wrapper zeta = P | x ; //shape(Nr,1)
+
+        float k_den = lambda +  ( x.transpose() | zeta ).to_float() ; 
+
+        Matrix_wrapper k = zeta / k_den; //shape(Nr,1)
+
+        P = ( P - ( k | x.transpose() ) | P ) * (1/lambda) ;  //shape(Nr,Nr)
+
+        n.Wout = n.Wout + ( psi | k.transpose() ); // shape(Ny,Nr)
+
+        assert(false);
         i++;
     }
 
