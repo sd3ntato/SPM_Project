@@ -6,16 +6,30 @@
 #include <string>
 #include <sstream>
 #include <assert.h>
+#include "matplotlib-cpp/matplotlibcpp.h"
 
 //BTCUSDT-1m-data.csv
 
 
 using namespace std;
+namespace plt = matplotlibcpp;
+
+
+Matrix_wrapper read_dataset(string filename);
 
 int main() {
 
+    Matrix_wrapper dataset = read_dataset("BTCUSDT-1m-data.csv");
+    plt::plot({1,3,2,4});
+    plt::show();
+
+    cout << "\nftt!\n";
+    return 0;
+}
+
+Matrix_wrapper read_dataset(string filename){
     string line;
-    ifstream myfile ("BTCUSDT-1m-data.csv");
+    ifstream myfile (filename);
     Matrix_wrapper dataset = Matrix_wrapper(nullptr,0,0); //container for the final dataset
     if( myfile.is_open() ){
         getline(myfile,line); // discard the first line as it contains intestation.
@@ -37,8 +51,5 @@ int main() {
         }
         myfile.close();
     }
-    print_matrix(dataset);
-
-    cout << "\nftt!\n";
-    return 0;
+    return dataset;
 }
