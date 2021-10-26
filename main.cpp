@@ -14,51 +14,66 @@
 using namespace std;
 namespace plt = matplotlibcpp;
 
-
 Matrix_wrapper read_dataset(string filename);
 
 int main() {
-    //plt::plot({1,3,2,4});
-    //plt::show();
-    //print_matrix(dataset.get_line(10));
-    
+
+    cout<< "reading dataset...";
     Matrix_wrapper dataset = read_dataset("BTCUSDT-1m-data.csv");
+    Matrix_wrapper dataset_n = normalize(dataset);
+    cout<<"dataset read"<<endl;
 
     int Nr = 100;
     int Nu = 4;
     int Ny = 4;
-    float lambda = 0.1;
-    float nabla = 0.01;
+    float lambda = 0.995;
+    float nabla = 0.1;
     int i=0;
 
+    vector<double> errors_norms {};
+
     ESN n = ESN(Nr = Nr, Nu = Nu, Ny = Ny);
+    n.Win = n.Win / 10;
     Matrix_wrapper P = eye(Nr+1)* (1/nabla);
     n.Wout = zeros(Ny,Nr+1); Matrix_wrapper y = zeros(4,1);
-    while(i<dataset.n2-1){
+    while(i<1000){
         
-        Matrix_wrapper u = dataset.get_line(i).transpose(); // shape(Nu,1)
+        Matrix_wrapper u = dataset_n.get_line(i).transpose(); // shape(Nu,1)
         Matrix_wrapper d = dataset.get_line(i+1).transpose(); //shape(Ny,1)
         
         Matrix_wrapper x = vstack( n.compute_state( u ) , ones(1,1) ) ; //shape(Nr,1)
+        //print_matrix(n.x);
 
         Matrix_wrapper y = n.compute_output( ); //shape(Ny,1)
+        //print_matrix(y);
 
         Matrix_wrapper psi = d - y; // shape(Ny,1)
+        //print_matrix(psi); //errore
 
         Matrix_wrapper zeta = P | x ; //shape(Nr,1)
+        //print_matrix(zeta);
 
-        float k_den = lambda +  ( x.transpose() | zeta ).to_float() ; 
+        float k_den = lambda +  ( x.transpose() | zeta ).to_float() ;
+        //cout << k_den <<endl; 
 
         Matrix_wrapper k = zeta / k_den; //shape(Nr,1)
+        //print_matrix(k);
 
-        P = ( P - ( k | x.transpose() ) | P ) * (1/lambda) ;  //shape(Nr,Nr)
+        P = ( P - ( k | zeta.transpose() ) ) * (1/lambda) ;  //shape(Nr,Nr)
+        //print_matrix(P);
 
         n.Wout = n.Wout + ( psi | k.transpose() ); // shape(Ny,Nr)
+        //print_matrix(n.Wout);
 
-        assert(false);
+        errors_norms.push_back( norm(psi) ) ;
+        cout<< errors_norms[i] << " " ;
         i++;
+
     }
 
+    cout<< endl;
+    plt::plot(errors_norms);
+    plt::show();    
 
     cout << "\nftt!\n";
     return 0;
