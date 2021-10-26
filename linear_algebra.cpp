@@ -122,6 +122,17 @@ Matrix_wrapper Matrix_wrapper::operator/( const float & k ){
     return res;
 }
 
+Matrix_wrapper Matrix_wrapper::operator-( const float & k ){
+ 
+    Matrix_wrapper res = zeros(this->n1, this->n2);
+    for(int i=0; i<this->n1;i++){
+        for(int j=0; j<this->n2; j++){
+            res.m[i][j] = this->m[i][j] - k;
+        }
+    }
+    return res;
+}
+
 Matrix_wrapper Matrix_wrapper::get_line(int i){
     if(i > this->n1){
         cout<< "Martix_wrapper::get_line: invalid argument grater than number of lines available"<<endl;
@@ -255,7 +266,9 @@ Matrix_wrapper build_sparse_contractive_matrix(int n1, int n2){
         assert(false);
     }
 
-    mat = mat / rho_act;
+    mat = mat * ( 0.5  / rho_act );
+
+    cout<< "spectral radius of the  recurrent matrix: "<< abs(mat.eigenvalues().array())[0]<< endl;
 
     Matrix_wrapper mm = zeros(n1,n2);
     float** m = mm.m;
@@ -324,5 +337,53 @@ Matrix_wrapper eye(int n){
     for(int i=0; i<n; i++){
         res.m[i][i] = 1.0;
     }
+    return res;
+}
+
+double norm(Matrix_wrapper mat){
+    if(not mat.n2==1){
+        cout << "norm: this function is for column vectors only! mat.n2 = "<< mat.n2 << endl;
+    }   
+    float n = 0.0;
+    for(int i=0; i<mat.n1; i++){
+        n = n + pow( mat.m[i][0], 2);
+    }
+    return sqrt( n );
+}
+
+double mean(Matrix_wrapper mat){
+    float s = 0.0;
+    for(int i=0; i<mat.n1; i++){
+        for(int j=0; j<mat.n2; j++){
+            s = s + mat.m[i][j];
+        }
+    }
+    s = s / (mat.n1*mat.n2);
+    return s;
+}
+
+Matrix_wrapper square(Matrix_wrapper mat){
+    Matrix_wrapper res = zeros(mat.n1,mat.n2);
+    for(int i=0; i<mat.n1; i++){
+        for(int j=0; j<mat.n2; j++){
+            res.m[i][j] = pow( mat.m[i][j], 2);
+        }
+    }
+    return res;
+}
+
+double var(Matrix_wrapper mat){
+    return mean( square( mat - mean(mat ) ) );
+}
+
+Matrix_wrapper normalize(Matrix_wrapper mat){
+    Matrix_wrapper res = copy(mat);
+    auto m = mean( res );
+    auto dev = sqrt( var( res ) ) ;
+
+    res = ( res - m ) / dev;
+
+    assert( mean(res) < 0.001 );
+    assert( abs( var(res) -1 )  < 0.001 );
     return res;
 }

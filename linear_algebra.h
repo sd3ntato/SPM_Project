@@ -14,6 +14,7 @@ class Matrix_wrapper{
    Matrix_wrapper operator*( const float & k );
    Matrix_wrapper operator+( const float & k );
    Matrix_wrapper operator/( const float & k );
+   Matrix_wrapper operator-( const float & k );
    Matrix_wrapper get_line( int i );
    Matrix_wrapper transpose( );
    float to_float();
@@ -29,3 +30,7 @@ Matrix_wrapper vstack(Matrix_wrapper m1, Matrix_wrapper m2);
 Matrix_wrapper elementwise_tanh( Matrix_wrapper m1);
 Matrix_wrapper copy( Matrix_wrapper m1);
 Matrix_wrapper from_array(float* a, int n);
+Matrix_wrapper normalize(Matrix_wrapper mat);
+double norm(Matrix_wrapper mat);
+double mean(Matrix_wrapper mat);
+double var(Matrix_wrapper mat);
