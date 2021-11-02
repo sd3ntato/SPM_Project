@@ -1,3 +1,4 @@
+#include <vector>
 
 class Matrix_wrapper{
   public:
@@ -34,3 +35,4 @@ Matrix_wrapper normalize(Matrix_wrapper mat);
 double norm(Matrix_wrapper mat);
 double mean(Matrix_wrapper mat);
 double var(Matrix_wrapper mat);
+void free_matrices(std::vector<Matrix_wrapper> matrices);

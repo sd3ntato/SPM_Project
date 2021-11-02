@@ -18,8 +18,10 @@ Matrix_wrapper ESN::compute_state(Matrix_wrapper u){
     u = vstack(u, ones(1,1));
     Matrix_wrapper z = (this->Win | u) + (this->W | this->x);
     Matrix_wrapper out = elementwise_tanh( z );
+    free_matrices({this->x});
     this->x = out;
-    return copy(out);
+    free_matrices({z});
+    return copy(this->x);
 }
 
 Matrix_wrapper ESN::compute_output(Matrix_wrapper u){

@@ -23,7 +23,12 @@ int main() {
     Matrix_wrapper dataset_n = normalize(dataset);
     cout<<"dataset read"<<endl;
 
-    int Nr = 100;
+    int Nr;
+    string input;
+    cout<<"insert number of recurrent neurons: \n";
+    cin >> input;
+    Nr = stoi(input);
+
     int Nu = 4;
     int Ny = 4;
     float lambda = 0.995;
@@ -36,27 +41,28 @@ int main() {
     n.Win = n.Win / 10;
     Matrix_wrapper P = eye(Nr+1)* (1/nabla);
     n.Wout = zeros(Ny,Nr+1); Matrix_wrapper y = zeros(4,1);
+    Matrix_wrapper u, d, x, psi, zeta, k;
     while(i<1000){
         
-        Matrix_wrapper u = dataset_n.get_line(i).transpose(); // shape(Nu,1)
-        Matrix_wrapper d = dataset.get_line(i+1).transpose(); //shape(Ny,1)
+        u = dataset_n.get_line(i).transpose(); // shape(Nu,1)
+        d = dataset.get_line(i+1).transpose(); //shape(Ny,1)
         
-        Matrix_wrapper x = vstack( n.compute_state( u ) , ones(1,1) ) ; //shape(Nr,1)
+        x = vstack( n.compute_state( u ) , ones(1,1) ) ; //shape(Nr,1)
         //print_matrix(n.x);
 
-        Matrix_wrapper y = n.compute_output( ); //shape(Ny,1)
+        y = n.compute_output( ); //shape(Ny,1)
         //print_matrix(y);
 
-        Matrix_wrapper psi = d - y; // shape(Ny,1)
+        psi = d - y; // shape(Ny,1)
         //print_matrix(psi); //errore
 
-        Matrix_wrapper zeta = P | x ; //shape(Nr,1)
+        zeta = P | x ; //shape(Nr,1)
         //print_matrix(zeta);
 
         float k_den = lambda +  ( x.transpose() | zeta ).to_float() ;
         //cout << k_den <<endl; 
 
-        Matrix_wrapper k = zeta / k_den; //shape(Nr,1)
+        k = zeta / k_den; //shape(Nr,1)
         //print_matrix(k);
 
         P = ( P - ( k | zeta.transpose() ) ) * (1/lambda) ;  //shape(Nr,Nr)
@@ -68,6 +74,8 @@ int main() {
         errors_norms.push_back( norm(psi) ) ;
         cout<< errors_norms[i] << " " ;
         i++;
+        
+        free_matrices({u, d, x, y, psi, zeta, k});
 
     }
 
@@ -105,3 +113,4 @@ Matrix_wrapper read_dataset(string filename){
     }
     return dataset;
 }
+

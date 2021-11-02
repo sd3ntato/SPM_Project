@@ -387,3 +387,14 @@ Matrix_wrapper normalize(Matrix_wrapper mat){
     assert( abs( var(res) -1 )  < 0.001 );
     return res;
 }
+
+void free_matrices(vector<Matrix_wrapper> matrices ){
+  for(int i=0;i<matrices.size();i++){
+    float** mat = matrices[i].m;
+    for(int j=0; j<matrices[i].n1;j++){
+      delete[] mat[j];
+    }
+    delete[] mat;
+  }
+
+}
