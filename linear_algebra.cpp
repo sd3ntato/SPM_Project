@@ -29,16 +29,10 @@ Matrix_wrapper Matrix_wrapper::operator|(const Matrix_wrapper &m2)
   { // scorre le righe della prima matrice
     for (int j = 0; j < m2.n2; j++)
     {              // scorren le colonne della seconda matrice
-      float s = 0; // accumulatore
-      float c1 = 0;
-      float c2 = 0;
       for (int cnt = 0; cnt < this->n2; cnt++)
       { //contatore per scorrere riga-colonna
-        c1 = this->m[i][cnt];
-        c2 = m2.m[cnt][j];
-        s = s + (c1 * c2);
+        res.m[i][j] += (this->m[i][cnt] * m2.m[cnt][j]);
       }
-      res.m[i][j] = s;
     }
   }
 
@@ -259,7 +253,6 @@ bool contains(int *l, int n, int t)
 Matrix_wrapper generate_random_sparse_matrix(int n1, int n2, float d, float interval_start, float interval_stop)
 {
 
-  // matrix with all zeros
   Matrix_wrapper mat = zeros(n1, n2);
   float **m = mat.m;
 
@@ -414,7 +407,7 @@ Matrix_wrapper eye(int n)
 
 double norm(Matrix_wrapper mat)
 {
-  if (not mat.n2 == 1)
+  if (not (mat.n2 == 1))
   {
     cout << "norm: this function is for column vectors only! mat.n2 = " << mat.n2 << endl;
   }
@@ -473,7 +466,7 @@ Matrix_wrapper normalize(Matrix_wrapper mat)
 
 void free_matrices(vector<Matrix_wrapper> matrices)
 {
-  for (int i = 0; i < matrices.size(); i++)
+  for (int i = 0; i < (int) matrices.size(); i++)
   {
     float **mat = matrices[i].m;
     for (int j = 0; j < matrices[i].n1; j++)

@@ -25,8 +25,8 @@ ESN::ESN(int Nr, int Ny, int Nu, float rho, float r_d)
 Matrix_wrapper ESN::compute_state(Matrix_wrapper u)
 {
   u = vstack(u, ones(1, 1));
-  Matrix_wrapper p1 = (this->Win | u);
-  Matrix_wrapper p2 = (this->W | this->x);
+  Matrix_wrapper p1 = this->Win | u;
+  Matrix_wrapper p2 = this->W | this->x;
   Matrix_wrapper z = p1 + p2;
   Matrix_wrapper out = elementwise_tanh(z);
   free_matrices({this->x});

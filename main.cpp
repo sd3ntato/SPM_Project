@@ -45,14 +45,17 @@ int main()
   Matrix_wrapper P = eye(Nr + 1) * (1 / nabla);
   n.Wout = zeros(Ny, Nr + 1);
   Matrix_wrapper y = zeros(4, 1);
-  Matrix_wrapper u, d, x, psi, zeta, k;
+  Matrix_wrapper u, d, x, psi, zeta, k, x1, xt, p1, p2, kt, psi1, zeta_t, u_l, d_l, temp;
   while (i < n_samples)
   {
 
-    u = dataset_n.get_line(i).transpose();   // shape(Nu,1)
-    d = dataset.get_line(i + 1).transpose(); //shape(Ny,1)
+    u_l = dataset_n.get_line(i);
+    u = u_l.transpose();   // shape(Nu,1)
+    d_l = dataset.get_line(i + 1);
+    d = d_l.transpose(); //shape(Ny,1)
 
-    x = vstack(n.compute_state(u), ones(1, 1)); //shape(Nr,1)
+    x1 = n.compute_state(u);
+    x = vstack(x1, ones(1, 1)); //shape(Nr,1)
     //print_matrix(n.x);
 
     y = n.compute_output(); //shape(Ny,1)
@@ -64,23 +67,30 @@ int main()
     zeta = P | x; //shape(Nr,1)
     //print_matrix(zeta);
 
-    float k_den = lambda + (x.transpose() | zeta).to_float();
+    xt = x.transpose();
+    float k_den = lambda + (xt | zeta).to_float();
     //cout << k_den <<endl;
 
     k = zeta / k_den; //shape(Nr,1)
     //print_matrix(k);
 
-    P = (P - (k | zeta.transpose())) * (1 / lambda); //shape(Nr,Nr)
+    zeta_t = zeta.transpose();
+    p1 = k | zeta_t;
+    p2 = P - p1 ;
+    P = p2 * (1 / lambda); //shape(Nr,Nr)
     //print_matrix(P);
 
-    n.Wout = n.Wout + (psi | k.transpose()); // shape(Ny,Nr)
+    kt = k.transpose();
+    psi1 = psi | kt ;
+    temp = n.Wout;
+    n.Wout = n.Wout + psi1; // shape(Ny,Nr)
     //print_matrix(n.Wout);
 
     errors_norms.push_back(norm(psi));
     cout << errors_norms[i] << " " << flush;
     i++;
 
-    free_matrices({u, d, x, y, psi, zeta, k});
+    free_matrices({u, d, x, psi, zeta, k, x1, xt, p1, p2, kt, psi1, zeta_t, u_l, d_l, temp});
   }
 
   cout << endl;
@@ -120,6 +130,7 @@ Matrix_wrapper read_dataset(string filename, int n_samples)
       n = from_array(numbers, 4);   //dichiarazione va spostata fuori
       dataset = vstack(dataset, n); // put the collected line into the dataset
       delete[] ss;
+      free_matrices({n});
       lines_read++;
     }
     myfile.close();
