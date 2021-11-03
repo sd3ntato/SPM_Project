@@ -7,19 +7,22 @@
 #include <sstream>
 #include <assert.h>
 #include "matplotlib-cpp/matplotlibcpp.h"
+#include "omp.h"
+#include <Eigen/Dense>
 
 //BTCUSDT-1m-data.csv
-
+using namespace Eigen;
 
 using namespace std;
 namespace plt = matplotlibcpp;
 
-Matrix_wrapper read_dataset(string filename);
+Matrix_wrapper read_dataset(string filename, int n_samples);
 
 int main() {
+  int n_samples = 10;
 
     cout<< "reading dataset...";
-    Matrix_wrapper dataset = read_dataset("BTCUSDT-1m-data.csv");
+    Matrix_wrapper dataset = read_dataset("BTCUSDT-1m-data.csv", n_samples);
     Matrix_wrapper dataset_n = normalize(dataset);
     cout<<"dataset read"<<endl;
 
@@ -38,11 +41,10 @@ int main() {
     vector<double> errors_norms {};
 
     ESN n = ESN(Nr = Nr, Nu = Nu, Ny = Ny);
-    n.Win = n.Win / 10;
     Matrix_wrapper P = eye(Nr+1)* (1/nabla);
     n.Wout = zeros(Ny,Nr+1); Matrix_wrapper y = zeros(4,1);
     Matrix_wrapper u, d, x, psi, zeta, k;
-    while(i<1000){
+    while(i<n_samples){
         
         u = dataset_n.get_line(i).transpose(); // shape(Nu,1)
         d = dataset.get_line(i+1).transpose(); //shape(Ny,1)
@@ -72,7 +74,7 @@ int main() {
         //print_matrix(n.Wout);
 
         errors_norms.push_back( norm(psi) ) ;
-        cout<< errors_norms[i] << " " ;
+        cout<< errors_norms[i] << " " << flush;
         i++;
         
         free_matrices({u, d, x, y, psi, zeta, k});
@@ -80,34 +82,38 @@ int main() {
     }
 
     cout<< endl;
-    plt::plot(errors_norms);
-    plt::show();    
+    //plt::plot(errors_norms);
+    //plt::show();    
 
     cout << "\nftt!\n";
     return 0;
 }
 
-Matrix_wrapper read_dataset(string filename){
+Matrix_wrapper read_dataset(string filename, int n_samples){
     string line;
     ifstream myfile (filename);
     Matrix_wrapper dataset = Matrix_wrapper(nullptr,0,0); //container for the final dataset
+    int lines_read = 0;
     if( myfile.is_open() ){
         getline(myfile,line); // discard the first line as it contains intestation.
-        while ( getline(myfile,line) ){ //get a line from the csv
+        while ( getline(myfile,line) && lines_read<n_samples+1 ){ //get a line from the csv
             istringstream iss(line); //turn it into this thing
             string s; 
             string* ss = new string[12]; // each line is divided into 12 tokens (we are interested in token 1 to 5)
+            Matrix_wrapper n;
+            float* numbers = new float[4]; // keep only ohlc values
             int i=0;
             while( getline(iss, s, ',') ){
                 ss[i] = s; //store the tokens in the apposite array
                 i++;
             }
-            float* numbers = new float[4]; // keep only ohlc values
             for(int i=0;i<5;i++){
                 numbers[i] = stof( ss[i+1] );
             }
-            Matrix_wrapper n = from_array(numbers,4); //dichiarazione va spostata fuori
+            n = from_array(numbers,4); //dichiarazione va spostata fuori
             dataset = vstack(dataset,n); // put the collected line into the dataset
+            delete[] ss;
+            lines_read++;
         }
         myfile.close();
     }
