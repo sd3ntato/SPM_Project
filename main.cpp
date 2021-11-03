@@ -20,7 +20,7 @@ Matrix_wrapper read_dataset(string filename, int n_samples);
 
 int main()
 {
-  int n_samples = 10;
+  int n_samples = 1000;
 
   cout << "reading dataset...";
   Matrix_wrapper dataset = read_dataset("BTCUSDT-1m-data.csv", n_samples);
@@ -45,7 +45,7 @@ int main()
   Matrix_wrapper P = eye(Nr + 1) * (1 / nabla);
   n.Wout = zeros(Ny, Nr + 1);
   Matrix_wrapper y = zeros(4, 1);
-  Matrix_wrapper u, d, x, psi, zeta, k, x1, xt, p1, p2, kt, psi1, zeta_t, u_l, d_l, temp;
+  Matrix_wrapper u, d, x, psi, zeta, k, x1, xt, p1, p2, kt, psi1, zeta_t, u_l, d_l, old_Wout;
   while (i < n_samples)
   {
 
@@ -77,20 +77,22 @@ int main()
     zeta_t = zeta.transpose();
     p1 = k | zeta_t;
     p2 = P - p1 ;
+    free_matrices({P});
     P = p2 * (1 / lambda); //shape(Nr,Nr)
     //print_matrix(P);
 
     kt = k.transpose();
     psi1 = psi | kt ;
-    temp = n.Wout;
-    n.Wout = n.Wout + psi1; // shape(Ny,Nr)
+    old_Wout = copy(n.Wout);
+    free_matrices({n.Wout});
+    n.Wout = old_Wout + psi1; // shape(Ny,Nr)
     //print_matrix(n.Wout);
 
     errors_norms.push_back(norm(psi));
     cout << errors_norms[i] << " " << flush;
     i++;
 
-    free_matrices({u, d, x, psi, zeta, k, x1, xt, p1, p2, kt, psi1, zeta_t, u_l, d_l, temp});
+    free_matrices({u, d, x, psi, zeta, k, x1, xt, p1, p2, kt, psi1, zeta_t, u_l, d_l, old_Wout});
   }
 
   cout << endl;
