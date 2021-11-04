@@ -1,3 +1,9 @@
 [submodule "matplotlib-cpp"]
 	path = matplotlib-cpp
 	url = https://github.com/lava/matplotlib-cpp.git
+[submodule "eigen"]
+	path = eigen
+	url = https://gitlab.com/libeigen/eigen.git
+[submodule "spectra"]
+	path = spectra
+	url = https://github.com/yixuan/spectra.git
