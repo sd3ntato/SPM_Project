@@ -1,12 +1,11 @@
 #include "linear_algebra.h"
 #include <random>
 #include <iostream>
-#include <Eigen/Dense>
 #include <assert.h>
 #include <math.h>
 
-using namespace Eigen;
 using namespace std;
+
 
 Matrix_wrapper::Matrix_wrapper(float **m, int n1, int n2)
 {
@@ -28,7 +27,7 @@ Matrix_wrapper Matrix_wrapper::operator|(const Matrix_wrapper &m2)
   for (int i = 0; i < this->n1; i++)
   { // scorre le righe della prima matrice
     for (int j = 0; j < m2.n2; j++)
-    {              // scorren le colonne della seconda matrice
+    { // scorren le colonne della seconda matrice
       for (int cnt = 0; cnt < this->n2; cnt++)
       { //contatore per scorrere riga-colonna
         res.m[i][j] += (this->m[i][cnt] * m2.m[cnt][j]);
@@ -301,33 +300,6 @@ Matrix_wrapper generate_random_sparse_matrix(int n1, int n2, float d, float inte
   return mat;
 }
 
-Matrix_wrapper build_sparse_contractive_matrix(int n1, int n2)
-{
-  MatrixXd mat = (MatrixXd::Random(n1, n2).array() > 0.9).cast<double>() * MatrixXd::Random(n1, n2).array();
-  auto rho_act = abs(mat.eigenvalues().array())[0];
-
-  if (rho_act < 0.1)
-  {
-    cout << "recurrent matrix creation failed bc spectral radius too small" << endl;
-    assert(false);
-  }
-
-  mat = mat * (0.5 / rho_act);
-
-  cout << "spectral radius of the  recurrent matrix: " << abs(mat.eigenvalues().array())[0] << endl;
-
-  Matrix_wrapper mm = zeros(n1, n2);
-  float **m = mm.m;
-  for (int i = 0; i < n1; i++)
-  {
-    for (int j = 0; j < n2; j++)
-    {
-      m[i][j] = mat(i, j);
-    }
-  }
-  return mm;
-}
-
 Matrix_wrapper vstack(Matrix_wrapper m1, Matrix_wrapper m2)
 {
   if (m1.m)
@@ -407,7 +379,7 @@ Matrix_wrapper eye(int n)
 
 double norm(Matrix_wrapper mat)
 {
-  if (not (mat.n2 == 1))
+  if (not(mat.n2 == 1))
   {
     cout << "norm: this function is for column vectors only! mat.n2 = " << mat.n2 << endl;
   }
@@ -466,7 +438,7 @@ Matrix_wrapper normalize(Matrix_wrapper mat)
 
 void free_matrices(vector<Matrix_wrapper> matrices)
 {
-  for (int i = 0; i < (int) matrices.size(); i++)
+  for (int i = 0; i < (int)matrices.size(); i++)
   {
     float **mat = matrices[i].m;
     for (int j = 0; j < matrices[i].n1; j++)
@@ -475,4 +447,65 @@ void free_matrices(vector<Matrix_wrapper> matrices)
     }
     delete[] mat;
   }
+}
+
+#include <Eigen/Dense>
+#include <Eigen/Core>
+#include <Eigen/SparseCore>
+#include <Spectra/GenEigsSolver.h>
+#include <Spectra/MatOp/SparseGenMatProd.h>
+#include <Spectra/GenEigsSolver.h>
+using namespace Spectra;
+using namespace Eigen;
+
+float spectral_radius(MatrixXd M)
+{
+  // Construct matrix operation object using the wrapper class
+  DenseGenMatProd<double> op(M);
+
+  // Construct eigen solver object, requesting the largest
+  // (in magnitude, or norm) three eigenvalues
+  GenEigsSolver<DenseGenMatProd<double>> eigs(op, 1, 6);
+
+  // Initialize and compute
+  eigs.init();
+  eigs.compute(SortRule::LargestMagn);
+
+  // Retrieve results
+  Eigen::VectorXcd evalues;
+  if (eigs.info() == CompInfo::Successful)
+  {
+    evalues = eigs.eigenvalues();
+    //std::cout << "Eigenvalues found:" << evalues(0) << std::endl;
+    return abs(evalues(0));
+  }
+  cout << "eig comp falied";
+  return 0;
+}
+
+Matrix_wrapper build_sparse_contractive_matrix(int n1, int n2)
+{
+  MatrixXd mat = (MatrixXd::Random(n1, n2).array() > 0.9).cast<double>() * MatrixXd::Random(n1, n2).array();
+  float rho_act = spectral_radius(mat);
+
+  if (rho_act < 0.1)
+  {
+    cout << "recurrent matrix creation failed bc spectral radius too small" << endl;
+    assert(false);
+  }
+
+  mat = mat * (0.8 / rho_act);
+
+  cout << "spectral radius of the  recurrent matrix: " << spectral_radius(mat) << endl;
+
+  Matrix_wrapper mm = zeros(n1, n2);
+  float **m = mm.m;
+  for (int i = 0; i < n1; i++)
+  {
+    for (int j = 0; j < n2; j++)
+    {
+      m[i][j] = mat(i, j);
+    }
+  }
+  return mm;
 }

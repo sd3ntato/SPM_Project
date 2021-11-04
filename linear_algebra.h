@@ -1,4 +1,6 @@
 #include <vector>
+#include <Eigen/Dense>
+using namespace Eigen;
 
 class Matrix_wrapper
 {
@@ -37,3 +39,4 @@ double norm(Matrix_wrapper mat);
 double mean(Matrix_wrapper mat);
 double var(Matrix_wrapper mat);
 void free_matrices(std::vector<Matrix_wrapper> matrices);
+float spectral_radius(MatrixXd M);
