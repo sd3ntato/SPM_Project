@@ -1,5 +1,4 @@
 #include "ESN.h"
-#include <iostream>
 
 ESN::ESN(int Nr, int Ny, int Nu, float rho, float r_d)
 {

@@ -1,5 +1,22 @@
 #include <vector>
+#include <random>
+#include <math.h>
+
+#ifndef eigen
+#define eigen
 #include <Eigen/Dense>
+#include <Eigen/Core>
+#include <Eigen/SparseCore>
+#include <Spectra/GenEigsSolver.h>
+#include <Spectra/MatOp/SparseGenMatProd.h>
+#include <Spectra/GenEigsSolver.h>
+#endif
+
+#ifndef io_stream
+#define io_stream
+#include <iostream>
+#endif
+
 using namespace Eigen;
 
 class Matrix_wrapper

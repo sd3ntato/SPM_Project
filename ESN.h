@@ -1,4 +1,13 @@
+#ifndef linear_algebra
+#define linear_algebra
 #include "linear_algebra.h"
+#endif
+
+#ifndef io_stream
+#define io_stream
+#include <iostream>
+#endif
+
 
 class ESN
 {

@@ -1,8 +1,7 @@
+#ifndef linear_algebra
+#define linear_algebra
 #include "linear_algebra.h"
-#include <random>
-#include <iostream>
-#include <assert.h>
-#include <math.h>
+#endif
 
 using namespace std;
 
@@ -449,12 +448,6 @@ void free_matrices(vector<Matrix_wrapper> matrices)
   }
 }
 
-#include <Eigen/Dense>
-#include <Eigen/Core>
-#include <Eigen/SparseCore>
-#include <Spectra/GenEigsSolver.h>
-#include <Spectra/MatOp/SparseGenMatProd.h>
-#include <Spectra/GenEigsSolver.h>
 using namespace Spectra;
 using namespace Eigen;
 

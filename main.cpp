@@ -1,20 +1,23 @@
+#ifndef linear_algebra
+#define linear_algebra
+#include "linear_algebra.h"
+#endif
+
+#ifndef io_stream
+#define io_stream
 #include <iostream>
-#include <random>
+#endif
+
 #include "ESN.h"
-#include <math.h>
 #include <fstream>
 #include <string>
 #include <sstream>
-#include <assert.h>
-#include "matplotlib-cpp/matplotlibcpp.h"
-#include "omp.h"
-#include <Eigen/Dense>
 
-//BTCUSDT-1m-data.csv
-using namespace Eigen;
+//#include "matplotlib-cpp/matplotlibcpp.h"
+//namespace plt = matplotlibcpp;
+
 
 using namespace std;
-namespace plt = matplotlibcpp;
 
 Matrix_wrapper read_dataset(string filename, int n_samples);
 
