@@ -26,7 +26,7 @@ int main()
   int n_samples = 1000;
 
   cout << "reading dataset...";
-  Matrix_wrapper dataset = read_dataset("./../BTCUSDT-1m-data.csv", n_samples);
+  Matrix_wrapper dataset = read_dataset("./BTCUSDT-1m-data.csv", n_samples);
   Matrix_wrapper dataset_n = normalize(dataset);
   cout << "dataset read" << endl;
 
