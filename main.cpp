@@ -21,7 +21,7 @@ namespace plt = matplotlibcpp;
 using namespace std;
 
 Matrix_wrapper read_dataset(string filename, int n_samples);
-float sum(int start, int stop, float* v1, float* v2);
+float sum(int start, int stop, float *v1, float *v2);
 
 int main()
 {
@@ -49,15 +49,17 @@ int main()
   ESN n = ESN(Nr = Nr, Nu = Nu, Ny = Ny);
   float **W = n.W.m;
   float **Win = n.Win.m;
-  float **Wout = zeros(Ny, Nr+1).m;
-  float **Wold = zeros(Ny, Nr+1).m;
-  float **P = (eye(Nr+1) * (1 / nabla)).m;
-  float **Pold = (eye(Nr+1) * (1 / nabla)).m;
+  float **Wout = zeros(Ny, Nr + 1).m;
+  float **Wold = zeros(Ny, Nr + 1).m;
+  float **P = (eye(Nr + 1) * (1 / nabla)).m;
+  float **Pold = (eye(Nr + 1) * (1 / nabla)).m;
 
-  float *x = zeros(1, Nr+1).m[0];
-  float *x_old = zeros(1, Nr+1).m[0];
-  float *k = zeros(1, Nr+1).m[0];
-  float *z = zeros(1, Nr+1).m[0];
+  float *x = zeros(1, Nr + 1).m[0];
+  x[Nr] = 1.0;
+  float *x_old = zeros(1, Nr + 1).m[0];
+  x_old[Nr] = 1.0;
+  float *k = zeros(1, Nr + 1).m[0];
+  float *z = zeros(1, Nr + 1).m[0];
   float *y = zeros(1, 4).m[0];
   float *u;
   float *d;
@@ -71,60 +73,73 @@ int main()
     u = dataset_n.m[i];
     d = dataset.m[i + 1];
 
-    for(int i=0; i<Nr; i++){
-      x[i] = tanh( sum( 1, Nr, W[i], x_old ) + sum( 1,Nu, Win[i], u ) );
+    for (int i = 0; i < Nr; i++)
+    {
+      x[i] = tanh(sum(0, Nr, W[i], x_old) + sum(0, Nu, Win[i], u) + Win[i][Nu] );
     }
-    x[Nr]=1.0;
+    x[Nr] = 1.0;
 
-    for(int i=0; i<Nr+1; i++){
-      z[i] = sum( 1, Nr+1, P[i], x );
-    }
-    
-    for(int i=0; i<Ny; i++){
-      y[i] = sum( 1, Nr+1, Wout[i], x);
+    for (int i = 0; i < Nr + 1; i++)
+    {
+      z[i] = sum(0, Nr + 1, P[i], x);
     }
 
-    k_den = l + sum( 1, Nr+1, x , z ) ;
-
-    for(int i=0; i<Nr+1; i++){
-      k[i] = z[i] / k_den ;
+    for (int i = 0; i < Ny; i++)
+    {
+      y[i] = sum(0, Nr + 1, Wout[i], x);
     }
 
-    for(int i=0; i<Ny; i++){
-      for(int j=0; j<Nr+1; j++){
-        Wout[i][j] = Wold[i][j] + ( d[i] - y[i] ) * k[j] ;
+    k_den = l + sum(0, Nr + 1, x, z);
+
+    for (int i = 0; i < Nr + 1; i++)
+    {
+      k[i] = z[i] / k_den;
+    }
+
+    for (int i = 0; i < Ny; i++)
+    {
+      for (int j = 0; j < Nr + 1; j++)
+      {
+        Wout[i][j] = Wold[i][j] + (d[i] - y[i]) * k[j];
       }
     }
 
-    for(int i=0; i<Nr+1; i++){
-      for(int j=0; j<Nr+1; j++){
-        P[i][j] = ( Pold[i][j] - k[i] * z[j] ) * 1/l;
+    for (int i = 0; i < Nr + 1; i++)
+    {
+      for (int j = 0; j < Nr + 1; j++)
+      {
+        P[i][j] = (Pold[i][j] - k[i] * z[j]) * 1 / l;
       }
     }
 
-    for(int i=0; i<Ny; i++){
-      for(int j=0; j<Nr+1; j++){
+    for (int i = 0; i < Ny; i++)
+    {
+      for (int j = 0; j < Nr + 1; j++)
+      {
         Wold[i][j] = Wout[i][j];
       }
     }
 
-    for(int i=0; i<Nr+1; i++){
-      for(int j=0; j<Nr+1; j++){
-        Pold[i][j] = P[i][j] ;
+    for (int i = 0; i < Nr + 1; i++)
+    {
+      for (int j = 0; j < Nr + 1; j++)
+      {
+        Pold[i][j] = P[i][j];
       }
     }
 
-    for(int i=0; i<Nr+1; i++){
+    for (int i = 0; i < Nr + 1; i++)
+    {
       x_old[i] = x[i];
     }
 
-    s=0;
-    for(int i=0; i<Ny; i++){
-      s += pow( d[i] - y[i], 2 );
+    s = 0;
+    for (int i = 0; i < Ny; i++)
+    {
+      s += pow(d[i] - y[i], 2);
     }
-    cout<< sqrt(s) << " " << flush;
-    errors_norms.push_back( s );
-
+    cout << sqrt(s) << " " << flush;
+    errors_norms.push_back(s);
 
     i++;
   }
@@ -138,14 +153,15 @@ int main()
   return 0;
 }
 
-float sum(int start, int stop, float* v1, float* v2){
+float sum(int start, int stop, float *v1, float *v2)
+{
   float s = 0.0;
-  for(int i=start;i<stop;i++){
+  for (int i = start; i < stop; i++)
+  {
     s += v1[i] * v2[i];
   }
   return s;
 }
-
 
 Matrix_wrapper read_dataset(string filename, int n_samples)
 {
