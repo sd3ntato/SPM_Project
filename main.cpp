@@ -12,14 +12,15 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include "math.h"
 
 //#include "matplotlib-cpp/matplotlibcpp.h"
 //namespace plt = matplotlibcpp;
 
-
 using namespace std;
 
 Matrix_wrapper read_dataset(string filename, int n_samples);
+float sum(int start, int stop, float* v1, float* v2);
 
 int main()
 {
@@ -45,17 +46,31 @@ int main()
   vector<double> errors_norms{};
 
   ESN n = ESN(Nr = Nr, Nu = Nu, Ny = Ny);
-  Matrix_wrapper P = eye(Nr + 1) * (1 / nabla);
-  n.Wout = zeros(Ny, Nr + 1);
-  Matrix_wrapper y = zeros(4, 1);
-  Matrix_wrapper u, d, x, psi, zeta, k, x1, xt, p1, p2, kt, delta, zeta_t, u_l, d_l, old_Wout, t1;
+  float **W = n.W.m;
+  float **Win = n.Win.m;
+  float **Wout = zeros(Ny, Nr).m;
+  float **Wold = zeros(Ny, Nr).m;
+  float **P = (eye(Nr) * (1 / nabla)).m;
+  float **Pold = zeros(Ny, Nr).m;
+
+  float *x = zeros(1, Nr).m[0];
+  float *x_old = zeros(1, Nr).m[0];
+  float *k = zeros(1, Nr).m[0];
+  float *zeta = zeros(1, Nr).m[0];
+  float *y = zeros(1, 4).m[0];
+  float *u;
+  float *d;
+
   while (i < n_samples)
   {
 
-    u_l = dataset_n.get_line(i);
-    u = u_l.transpose();   // shape(Nu,1)
-    d_l = dataset.get_line(i + 1);
-    d = d_l.transpose(); //shape(Ny,1)
+    u = dataset_n.m[i];
+    d = dataset.m[i + 1];
+
+    for(int i=0; i<Nr; i++){
+      x[i] = tanh( sum( 1, Nr, W[i], x_old ) + sum( 1,Nu, Win[i], u ) );
+    }
+    /*
 
     x1 = n.compute_state(u);
     x = vstack(x1, ones(1, 1)); //shape(Nr,1)
@@ -97,6 +112,7 @@ int main()
     i++;
 
     free_matrices({u, d, x, psi, zeta, k, x1, xt, p1, p2, kt, delta, zeta_t, u_l, d_l, old_Wout, t1});
+  */
   }
 
   cout << endl;
@@ -106,6 +122,15 @@ int main()
   cout << "\nftt!\n";
   return 0;
 }
+
+float sum(int start, int stop, float* v1, float* v2){
+  float s = 0.0;
+  for(int i=start;i<stop;i++){
+    s += v1[i] * v2[i];
+  }
+  return s;
+}
+
 
 Matrix_wrapper read_dataset(string filename, int n_samples)
 {
