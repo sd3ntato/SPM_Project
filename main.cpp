@@ -13,9 +13,10 @@
 #include <string>
 #include <sstream>
 #include "math.h"
+#include "matplotlibcpp.h"
 
 //#include "matplotlib-cpp/matplotlibcpp.h"
-//namespace plt = matplotlibcpp;
+namespace plt = matplotlibcpp;
 
 using namespace std;
 
@@ -39,7 +40,7 @@ int main()
 
   int Nu = 4;
   int Ny = 4;
-  float lambda = 0.995;
+  float l = 0.995;
   float nabla = 0.1;
   int i = 0;
 
@@ -51,15 +52,18 @@ int main()
   float **Wout = zeros(Ny, Nr).m;
   float **Wold = zeros(Ny, Nr).m;
   float **P = (eye(Nr) * (1 / nabla)).m;
-  float **Pold = zeros(Ny, Nr).m;
+  float **Pold = (eye(Nr) * (1 / nabla)).m;
 
   float *x = zeros(1, Nr).m[0];
   float *x_old = zeros(1, Nr).m[0];
   float *k = zeros(1, Nr).m[0];
-  float *zeta = zeros(1, Nr).m[0];
+  float *z = zeros(1, Nr).m[0];
   float *y = zeros(1, 4).m[0];
   float *u;
   float *d;
+
+  float k_den;
+  float s;
 
   while (i < n_samples)
   {
@@ -70,54 +74,63 @@ int main()
     for(int i=0; i<Nr; i++){
       x[i] = tanh( sum( 1, Nr, W[i], x_old ) + sum( 1,Nu, Win[i], u ) );
     }
-    /*
 
-    x1 = n.compute_state(u);
-    x = vstack(x1, ones(1, 1)); //shape(Nr,1)
-    //print_matrix(n.x);
+    for(int i=0; i<Nr; i++){
+      z[i] = sum( 1, Nr, P[i], x );
+    }
+    
+    for(int i=0; i<Ny; i++){
+      y[i] = sum( 1, Nr, Wout[i], x);
+    }
 
-    y = n.compute_output(); //shape(Ny,1)
-    //print_matrix(y);
+    k_den = l + sum( 1, Nr, x , z ) ;
 
-    psi = d - y; // shape(Ny,1)
-    //print_matrix(psi); //errore
+    for(int i=0; i<Nr; i++){
+      k[i] = z[i] / k_den ;
+    }
 
-    zeta = P | x; //shape(Nr,1)
-    //print_matrix(zeta);
+    for(int i=0; i<Ny; i++){
+      for(int j=0; j<Nr; j++){
+        Wout[i][j] = Wold[i][j] + ( d[i] - y[i] ) * k[j] ;
+      }
+    }
 
-    xt = x.transpose();
-    t1 = xt | zeta;
-    float k_den = lambda + t1.to_float();
-    //cout << k_den <<endl;
+    for(int i=0; i<Nr; i++){
+      for(int j=0; j<Nr; j++){
+        P[i][j] = ( Pold[i][j] - k[i] * z[j] ) * 1/l;
+      }
+    }
 
-    k = zeta / k_den; //shape(Nr,1)
-    //print_matrix(k);
+    for(int i=0; i<Ny; i++){
+      for(int j=0; j<Nr; j++){
+        Wold[i][j] = Wout[i][j];
+      }
+    }
 
-    zeta_t = zeta.transpose();
-    p1 = k | zeta_t;
-    p2 = P - p1 ;
-    free_matrices({P});
-    P = p2 * (1 / lambda); //shape(Nr,Nr)
-    //print_matrix(P);
+    for(int i=0; i<Nr; i++){
+      for(int j=0; j<Nr; j++){
+        Pold[i][j] = P[i][j] ;
+      }
+    }
 
-    kt = k.transpose();
-    delta = psi | kt ; // shape (Ny,1) (1, Nr)
-    old_Wout = copy(n.Wout);
-    free_matrices({n.Wout});
-    n.Wout = old_Wout + delta; // shape(Ny,Nr)
-    //print_matrix(n.Wout);
+    for(int i=0; i<Nr; i++){
+      x_old[i] = x[i];
+    }
 
-    errors_norms.push_back(norm(psi));
-    cout << errors_norms[i] << " " << flush;
+    s=0;
+    for(int i=0; i<Ny; i++){
+      s += pow( d[i] - y[i], 2 );
+    }
+    cout<< sqrt(s) << " " << flush;
+    errors_norms.push_back( s );
+
+
     i++;
-
-    free_matrices({u, d, x, psi, zeta, k, x1, xt, p1, p2, kt, delta, zeta_t, u_l, d_l, old_Wout, t1});
-  */
   }
 
   cout << endl;
-  //plt::plot(errors_norms);
-  //plt::show();
+  plt::plot(errors_norms);
+  plt::show();
 
   cout << "\nftt!\n";
   return 0;
