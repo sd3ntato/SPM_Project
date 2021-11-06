@@ -49,15 +49,15 @@ int main()
   ESN n = ESN(Nr = Nr, Nu = Nu, Ny = Ny);
   float **W = n.W.m;
   float **Win = n.Win.m;
-  float **Wout = zeros(Ny, Nr).m;
-  float **Wold = zeros(Ny, Nr).m;
-  float **P = (eye(Nr) * (1 / nabla)).m;
-  float **Pold = (eye(Nr) * (1 / nabla)).m;
+  float **Wout = zeros(Ny, Nr+1).m;
+  float **Wold = zeros(Ny, Nr+1).m;
+  float **P = (eye(Nr+1) * (1 / nabla)).m;
+  float **Pold = (eye(Nr+1) * (1 / nabla)).m;
 
-  float *x = zeros(1, Nr).m[0];
-  float *x_old = zeros(1, Nr).m[0];
-  float *k = zeros(1, Nr).m[0];
-  float *z = zeros(1, Nr).m[0];
+  float *x = zeros(1, Nr+1).m[0];
+  float *x_old = zeros(1, Nr+1).m[0];
+  float *k = zeros(1, Nr+1).m[0];
+  float *z = zeros(1, Nr+1).m[0];
   float *y = zeros(1, 4).m[0];
   float *u;
   float *d;
@@ -74,46 +74,47 @@ int main()
     for(int i=0; i<Nr; i++){
       x[i] = tanh( sum( 1, Nr, W[i], x_old ) + sum( 1,Nu, Win[i], u ) );
     }
+    x[Nr]=1.0;
 
-    for(int i=0; i<Nr; i++){
-      z[i] = sum( 1, Nr, P[i], x );
+    for(int i=0; i<Nr+1; i++){
+      z[i] = sum( 1, Nr+1, P[i], x );
     }
     
     for(int i=0; i<Ny; i++){
-      y[i] = sum( 1, Nr, Wout[i], x);
+      y[i] = sum( 1, Nr+1, Wout[i], x);
     }
 
-    k_den = l + sum( 1, Nr, x , z ) ;
+    k_den = l + sum( 1, Nr+1, x , z ) ;
 
-    for(int i=0; i<Nr; i++){
+    for(int i=0; i<Nr+1; i++){
       k[i] = z[i] / k_den ;
     }
 
     for(int i=0; i<Ny; i++){
-      for(int j=0; j<Nr; j++){
+      for(int j=0; j<Nr+1; j++){
         Wout[i][j] = Wold[i][j] + ( d[i] - y[i] ) * k[j] ;
       }
     }
 
-    for(int i=0; i<Nr; i++){
-      for(int j=0; j<Nr; j++){
+    for(int i=0; i<Nr+1; i++){
+      for(int j=0; j<Nr+1; j++){
         P[i][j] = ( Pold[i][j] - k[i] * z[j] ) * 1/l;
       }
     }
 
     for(int i=0; i<Ny; i++){
-      for(int j=0; j<Nr; j++){
+      for(int j=0; j<Nr+1; j++){
         Wold[i][j] = Wout[i][j];
       }
     }
 
-    for(int i=0; i<Nr; i++){
-      for(int j=0; j<Nr; j++){
+    for(int i=0; i<Nr+1; i++){
+      for(int j=0; j<Nr+1; j++){
         Pold[i][j] = P[i][j] ;
       }
     }
 
-    for(int i=0; i<Nr; i++){
+    for(int i=0; i<Nr+1; i++){
       x_old[i] = x[i];
     }
 
@@ -129,6 +130,7 @@ int main()
   }
 
   cout << endl;
+  errors_norms.erase(errors_norms.begin());
   plt::plot(errors_norms);
   plt::show();
 

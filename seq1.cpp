@@ -12,9 +12,11 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include "matplotlibcpp.h"
+
 
 //#include "matplotlib-cpp/matplotlibcpp.h"
-//namespace plt = matplotlibcpp;
+namespace plt = matplotlibcpp;
 
 
 using namespace std;
@@ -100,8 +102,9 @@ int main()
   }
 
   cout << endl;
-  //plt::plot(errors_norms);
-  //plt::show();
+  errors_norms.erase(errors_norms.begin());
+  plt::plot(errors_norms);
+  plt::show();
 
   cout << "\nftt!\n";
   return 0;
