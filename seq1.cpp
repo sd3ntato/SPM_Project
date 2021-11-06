@@ -48,7 +48,7 @@ int main()
   Matrix_wrapper P = eye(Nr + 1) * (1 / nabla);
   n.Wout = zeros(Ny, Nr + 1);
   Matrix_wrapper y = zeros(4, 1);
-  Matrix_wrapper u, d, x, psi, zeta, k, x1, xt, p1, p2, kt, psi1, zeta_t, u_l, d_l, old_Wout;
+  Matrix_wrapper u, d, x, psi, zeta, k, x1, xt, p1, p2, kt, delta, zeta_t, u_l, d_l, old_Wout, t1;
   while (i < n_samples)
   {
 
@@ -71,7 +71,8 @@ int main()
     //print_matrix(zeta);
 
     xt = x.transpose();
-    float k_den = lambda + (xt | zeta).to_float();
+    t1 = xt | zeta;
+    float k_den = lambda + t1.to_float();
     //cout << k_den <<endl;
 
     k = zeta / k_den; //shape(Nr,1)
@@ -85,17 +86,17 @@ int main()
     //print_matrix(P);
 
     kt = k.transpose();
-    psi1 = psi | kt ;
+    delta = psi | kt ; // shape (Ny,1) (1, Nr)
     old_Wout = copy(n.Wout);
     free_matrices({n.Wout});
-    n.Wout = old_Wout + psi1; // shape(Ny,Nr)
+    n.Wout = old_Wout + delta; // shape(Ny,Nr)
     //print_matrix(n.Wout);
 
     errors_norms.push_back(norm(psi));
     cout << errors_norms[i] << " " << flush;
     i++;
 
-    free_matrices({u, d, x, psi, zeta, k, x1, xt, p1, p2, kt, psi1, zeta_t, u_l, d_l, old_Wout});
+    free_matrices({u, d, x, psi, zeta, k, x1, xt, p1, p2, kt, delta, zeta_t, u_l, d_l, old_Wout, t1});
   }
 
   cout << endl;
