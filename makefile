@@ -1,3 +1,10 @@
+prova: prova.cpp linear_algebra/linear_algebra.cpp linear_algebra/linear_algebra.h ESN/ESN.cpp ESN/ESN.h
+	g++ -fdiagnostics-color=always -g \
+	prova.cpp linear_algebra/linear_algebra.cpp linear_algebra/linear_algebra.h ESN/ESN.cpp ESN/ESN.h \
+	-pthread \
+	-lpython3.8 -o prova -pipe -O0 -fopenmp  -ggdb3 \
+	-I/usr/include/python3.8 -I ./spectra/include -I ./eigen -I ./matplotlib-cpp/ -I./linear_algebra -I./ESN
+
 main: main.cpp linear_algebra/linear_algebra.cpp linear_algebra/linear_algebra.h ESN/ESN.cpp ESN/ESN.h
 	g++ -fdiagnostics-color=always -g \
 	main.cpp linear_algebra/linear_algebra.cpp linear_algebra/linear_algebra.h ESN/ESN.cpp ESN/ESN.h \

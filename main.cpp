@@ -21,7 +21,7 @@ namespace plt = matplotlibcpp;
 using namespace std;
 
 Matrix_wrapper read_dataset(string filename, int n_samples);
-float sum(int start, int stop, float *v1, float *v2);
+float dot(int start, int stop, float *v1, float *v2);
 
 int main()
 {
@@ -75,27 +75,29 @@ int main()
 
     for (int i = 0; i < Nr; i++)
     {
-      x[i] = tanh(sum(0, Nr, W[i], x_old) + sum(0, Nu, Win[i], u) + Win[i][Nu] );
+      x[i] = tanh(dot(0, Nr, W[i], x_old) + dot(0, Nu, Win[i], u) + Win[i][Nu]);
     }
     x[Nr] = 1.0;
 
     for (int i = 0; i < Nr + 1; i++)
     {
-      z[i] = sum(0, Nr + 1, P[i], x);
+      z[i] = dot(0, Nr + 1, P[i], x);
     }
 
     for (int i = 0; i < Ny; i++)
     {
-      y[i] = sum(0, Nr + 1, Wout[i], x);
+      y[i] = dot(0, Nr + 1, Wout[i], x);
     }
 
-    k_den = l + sum(0, Nr + 1, x, z);
+    k_den = l + dot(0, Nr + 1, x, z);
 
+    // map
     for (int i = 0; i < Nr + 1; i++)
     {
       k[i] = z[i] / k_den;
     }
 
+    // map
     for (int i = 0; i < Ny; i++)
     {
       for (int j = 0; j < Nr + 1; j++)
@@ -104,6 +106,7 @@ int main()
       }
     }
 
+    // map
     for (int i = 0; i < Nr + 1; i++)
     {
       for (int j = 0; j < Nr + 1; j++)
@@ -112,6 +115,7 @@ int main()
       }
     }
 
+    // map
     for (int i = 0; i < Ny; i++)
     {
       for (int j = 0; j < Nr + 1; j++)
@@ -120,6 +124,7 @@ int main()
       }
     }
 
+    // map
     for (int i = 0; i < Nr + 1; i++)
     {
       for (int j = 0; j < Nr + 1; j++)
@@ -128,6 +133,7 @@ int main()
       }
     }
 
+    // map
     for (int i = 0; i < Nr + 1; i++)
     {
       x_old[i] = x[i];
@@ -153,7 +159,7 @@ int main()
   return 0;
 }
 
-float sum(int start, int stop, float *v1, float *v2)
+float dot(int start, int stop, float *v1, float *v2)
 {
   float s = 0.0;
   for (int i = start; i < stop; i++)
@@ -162,6 +168,30 @@ float sum(int start, int stop, float *v1, float *v2)
   }
   return s;
 }
+
+
+/*
+parallel_dot(int start, int stop, float *v1, float *v2)
+{
+  for (int i = start; i < stop; i += k)
+  {
+    s = pool.submit(Dot_Task( i, i + k, v1, v2) );
+  }
+}
+
+void worker_fun(queue<tasks> taskq)
+{
+  Task task;
+  while (true)
+  {
+    task = taskq.pop();
+    task.execute();
+  }
+}
+
+
+
+*/
 
 Matrix_wrapper read_dataset(string filename, int n_samples)
 {
