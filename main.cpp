@@ -55,7 +55,8 @@ int main()
   float **Pold = (eye(Nr + 1) * (1 / nabla)).m;
 
   float *x = zeros(1, Nr + 1).m[0];
-  x[Nr] = 1.0;
+  float *x_rec = zeros(1, Nr + 1).m[0];
+  float *x_in = zeros(1, Nr + 1).m[0];
   float *x_old = zeros(1, Nr + 1).m[0];
   x_old[Nr] = 1.0;
   float *k = zeros(1, Nr + 1).m[0];
@@ -75,7 +76,18 @@ int main()
 
     for (int i = 0; i < Nr; i++)
     {
-      x[i] = tanh(dot(0, Nr, W[i], x_old) + dot(0, Nu, Win[i], u) + Win[i][Nu]);
+      x_rec[i] = dot(0, Nr, W[i], x_old) ;
+    }
+
+    for (int i = 0; i < Nr; i++)
+    {
+      x_in[i] = dot(0, Nu, Win[i], u) ;
+    }
+
+
+    for (int i = 0; i < Nr; i++)
+    {
+      x[i] = tanh( x_rec[i] + x_in[i] + Win[i][Nu]) ;
     }
     x[Nr] = 1.0;
 
