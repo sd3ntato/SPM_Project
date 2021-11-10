@@ -171,39 +171,6 @@ int main()
   return 0;
 }
 
-float dot(int start, int stop, float *v1, float *v2)
-{
-  float s = 0.0;
-  for (int i = start; i < stop; i++)
-  {
-    s += v1[i] * v2[i];
-  }
-  return s;
-}
-
-
-/*
-parallel_dot(int start, int stop, float *v1, float *v2)
-{
-  for (int i = start; i < stop; i += k)
-  {
-    s = pool.submit(Dot_Task( i, i + k, v1, v2) );
-  }
-}
-
-void worker_fun(queue<tasks> taskq)
-{
-  Task task;
-  while (true)
-  {
-    task = taskq.pop();
-    task.execute();
-  }
-}
-
-
-
-*/
 
 Matrix_wrapper read_dataset(string filename, int n_samples)
 {

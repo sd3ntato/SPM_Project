@@ -502,3 +502,15 @@ Matrix_wrapper build_sparse_contractive_matrix(int n1, int n2)
   }
   return mm;
 }
+
+
+
+float dot(int start, int stop, float *v1, float *v2)
+{
+  float s = 0.0;
+  for (int i = start; i < stop; i++)
+  {
+    s += v1[i] * v2[i];
+  }
+  return s;
+}

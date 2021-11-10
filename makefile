@@ -1,9 +1,19 @@
-prova: prova.cpp linear_algebra/linear_algebra.cpp linear_algebra/linear_algebra.h ESN/ESN.cpp ESN/ESN.h
+prova: prova.cpp \
+  linear_algebra/linear_algebra.cpp linear_algebra/linear_algebra.h \
+	ESN/ESN.cpp ESN/ESN.h \
+	par_utils/utimer.cpp \
+	par_utils/tasks.cpp par_utils/tasks.h \
+	par_utils/pool.cpp par_utils/pool.h
 	g++ -fdiagnostics-color=always -g \
-	prova.cpp linear_algebra/linear_algebra.cpp linear_algebra/linear_algebra.h ESN/ESN.cpp ESN/ESN.h \
+	prova.cpp \
+	linear_algebra/linear_algebra.cpp linear_algebra/linear_algebra.h \
+	ESN/ESN.cpp ESN/ESN.h \
+	par_utils/utimer.cpp \
+	par_utils/tasks.cpp par_utils/tasks.h \
+	par_utils/pool.cpp par_utils/pool.h \
 	-pthread \
 	-lpython3.8 -o prova -pipe -O0 -fopenmp  -ggdb3 \
-	-I/usr/include/python3.8 -I ./spectra/include -I ./eigen -I ./matplotlib-cpp/ -I./linear_algebra -I./ESN
+	-I/usr/include/python3.8 -I ./spectra/include -I ./eigen -I ./matplotlib-cpp/ -I./linear_algebra -I./ESN -I./par_utils
 
 main: main.cpp linear_algebra/linear_algebra.cpp linear_algebra/linear_algebra.h ESN/ESN.cpp ESN/ESN.h
 	g++ -fdiagnostics-color=always -g \
@@ -19,4 +29,4 @@ seq1: seq1.cpp linear_algebra/linear_algebra.cpp linear_algebra/linear_algebra.h
 
 
 clean:
-	rm seq1 main
+	rm seq1 main prova
