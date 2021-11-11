@@ -34,11 +34,12 @@ void worker_fun(queue<Task *> &taskq, bool &stop)
   }
 }
 
-void join_threads(bool *&stops, int n, bool &global_stop, thread *&threads)
+void join_threads(bool *&stops, int n, thread *&threads, mutex& t_mutex, condition_variable& t_condition)
 {
-  while (!global_stop) // questo non puo proprio fare attesa attiva
-  {
-  }
+  unique_lock<mutex> lock(t_mutex);
+  t_condition.wait(lock);
+
+  // when this thread get woken up it tells all workers to turn off
   for (int i = 0; i < n; i++)
   {
     stops[i] = 1;
@@ -52,7 +53,6 @@ void join_threads(bool *&stops, int n, bool &global_stop, thread *&threads)
 Pool::Pool(int n)
 {
   n_workers = n;
-  glob_stop = 0;
   taskqs = new queue<Task *>[n];
   stops = new bool[n];
   threads = new thread[n];
@@ -64,7 +64,7 @@ Pool::Pool(int n)
     threads[i] = thread(worker_fun, ref(taskqs[i]), ref(stops[i]));
   }
 
-  thread join_deamon(join_threads, ref(stops), n, ref(glob_stop), ref(threads));
+  thread join_deamon(join_threads, ref(stops), n, ref(threads), ref(t_mutex), ref(t_condition));
   join_deamon.detach();
 }
 
@@ -79,7 +79,7 @@ void Pool::submit(vector<Task *> taskv)
 
 void Pool::terminate()
 {
-  glob_stop = 1;
+  t_condition.notify_one();
 }
 
 void Pool::await_no_tasks_todo()

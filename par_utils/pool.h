@@ -18,9 +18,10 @@ private:
   int n_workers;
   queue<Task *> *taskqs; // array of queues of tasks
   bool *stops;
-  bool glob_stop;
   thread *threads; // array of workers
   int last_submitted;
+  mutex t_mutex;
+  condition_variable t_condition;
 
 public:
   Pool(int n);
@@ -33,4 +34,4 @@ int min(int a, int b);
 float sum(float *a, int n);
 float parallel_dot(float *a, float *b, int n, Pool &p, int k);
 void worker_fun(queue<Task *> &taskq, bool &stop);
-void join_threads(bool *&stops, int n, bool &global_stop, thread *&threads);
+void join_threads(bool *&stops, int n, thread *&threads, mutex& t_mutex, condition_variable& t_condition);
