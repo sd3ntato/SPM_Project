@@ -21,12 +21,11 @@ private:
   thread *threads; // array of workers
   int last_submitted;
   mutex terminate_mutex;
-  mutex* thread_mutexes;
   condition_variable terminate_condition;
-  condition_variable* thread_conditions;
 
 public:
   Pool(int n);
+  ~Pool() { this->terminate(); }
   void submit(vector<Task *> taskv);
   void terminate();
   void await_no_tasks_todo();
