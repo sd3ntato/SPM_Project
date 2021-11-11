@@ -1,10 +1,14 @@
 #include <iostream>
 #include "linear_algebra.h"
 #include <memory>
-#include <queue>
 #include <thread>
 #include "math.h"
 #include "utimer.cpp"
+
+#ifndef prot_queue_h
+#define prot_queue_h
+#include "prot_queue.h"
+#endif
 
 #ifndef pool_h
 #define pool_h
@@ -29,7 +33,7 @@ int main()
 
   {
     utimer t("par");
-    float c = parallel_dot(a, b, n_samples, ref(p));
+    float c = parallel_dot(a, b, n_samples, ref(p), 100);
     cout << c << endl;
   }
 

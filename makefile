@@ -3,7 +3,8 @@ prova: prova.cpp \
 	ESN/ESN.cpp ESN/ESN.h \
 	par_utils/utimer.cpp \
 	par_utils/tasks.cpp par_utils/tasks.h \
-	par_utils/pool.cpp par_utils/pool.h
+	par_utils/pool.cpp par_utils/pool.h \
+	par_utils/prot_queue.h
 	g++ -fdiagnostics-color=always -g \
 	prova.cpp \
 	linear_algebra/linear_algebra.cpp linear_algebra/linear_algebra.h \
@@ -11,6 +12,7 @@ prova: prova.cpp \
 	par_utils/utimer.cpp \
 	par_utils/tasks.cpp par_utils/tasks.h \
 	par_utils/pool.cpp par_utils/pool.h \
+	par_utils/prot_queue.h \
 	-pthread \
 	-lpython3.8 -o prova -pipe -O0 -fopenmp  -ggdb3 \
 	-I/usr/include/python3.8 -I ./spectra/include -I ./eigen -I ./matplotlib-cpp/ -I./linear_algebra -I./ESN -I./par_utils
