@@ -115,13 +115,10 @@ float sum(float *a, int n)
 float parallel_dot(float *a, float *b, int n, Pool &p, int k)
 {
   float *results = new float[(int)ceil(n / k)];
-  vector<Task *> taskv;
   for (int i = 0; i < n; i += k)
   {
-    //cout<< i<< " "<< min(i + k, n)<< endl;
-    taskv.push_back(new Dot_task(i, min(i + k, n), a, b, &results[int(i / k)]));
+    p.submit({ new Dot_task(i, min(i + k, n), a, b, &results[int(i / k)]) });
   }
-  p.submit(taskv);
   p.await_no_tasks_todo();
   float s = sum(results, (int)ceil(n / k));
   delete [] results;
