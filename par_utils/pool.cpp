@@ -20,29 +20,38 @@
 
 using namespace std;
 
-void worker_fun(queue<Task *> &taskq, bool &stop)
+void worker_fun(queue<Task *> &taskq, bool& stop, condition_variable& thread_condition, mutex& thread_mutex)
 {
   Task *task;
-  while (!stop)
+  while (true)
   {
-    while (!taskq.empty()) // impelemtnare wait quando la coda e vuota senno fa attesa attiva 
+    //wait on this thread's confition variable until queue is not empty or join deamon 
+    //signal to stop
+    unique_lock<mutex> lock(thread_mutex);
+    thread_condition.wait(lock);
+
+    while (!taskq.empty()) // can assure queue is not empty and then go and pop bc this thread is the only one that pops
     {
       task = taskq.pop();
       task->execute();
       delete task;
     }
+
+    // if I have been woken up because i have to turn off I turn off
+    if(stop) return;
   }
 }
 
-void join_threads(bool *&stops, int n, thread *&threads, mutex& t_mutex, condition_variable& t_condition)
+void join_threads(bool *&stops, int n, thread *&threads, mutex& terminate_mutex, condition_variable& terminate_condition, condition_variable*& thread_conditions)
 {
-  unique_lock<mutex> lock(t_mutex);
-  t_condition.wait(lock);
+  unique_lock<mutex> lock(terminate_mutex);
+  terminate_condition.wait(lock);
 
   // when this thread get woken up it tells all workers to turn off
   for (int i = 0; i < n; i++)
   {
     stops[i] = 1;
+    thread_conditions[i].notify_one();
   }
   for (int i = 0; i < n; i++)
   {
@@ -57,14 +66,16 @@ Pool::Pool(int n)
   stops = new bool[n];
   threads = new thread[n];
   last_submitted = 0;
+  thread_conditions = new condition_variable[n];
+  thread_mutexes = new mutex[n];
 
   for (int i = 0; i < n; i++)
   {
     stops[i] = 0;
-    threads[i] = thread(worker_fun, ref(taskqs[i]), ref(stops[i]));
+    threads[i] = thread(worker_fun, ref(taskqs[i]), ref(stops[i]), ref(thread_conditions[i]), ref(thread_mutexes[i]));
   }
 
-  thread join_deamon(join_threads, ref(stops), n, ref(threads), ref(t_mutex), ref(t_condition));
+  thread join_deamon(join_threads, ref(stops), n, ref(threads), ref(terminate_mutex), ref(terminate_condition), ref(thread_conditions));
   join_deamon.detach();
 }
 
@@ -74,12 +85,13 @@ void Pool::submit(vector<Task *> taskv)
   {
     last_submitted = ( last_submitted + 1 ) % n_workers;
     taskqs[last_submitted].push(taskv[i]);
+    thread_conditions[last_submitted].notify_one();
   }
 }
 
 void Pool::terminate()
 {
-  t_condition.notify_one();
+  terminate_condition.notify_one();
 }
 
 void Pool::await_no_tasks_todo()
