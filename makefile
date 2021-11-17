@@ -37,7 +37,7 @@ par0: par0.cpp \
   linear_algebra/linear_algebra.cpp linear_algebra/linear_algebra.h \
 	ESN/ESN.cpp ESN/ESN.h \
 	par_utils/utimer.cpp \
-	par_utils/tasks.cpp par_utils/tasks.h \
+	par_utils/tasks.h \
 	par_utils/pool.cpp par_utils/pool.h \
 	par_utils/prot_queue.h
 	g++ -fdiagnostics-color=always -g \
@@ -45,7 +45,6 @@ par0: par0.cpp \
 	linear_algebra/linear_algebra.cpp linear_algebra/linear_algebra.h \
 	ESN/ESN.cpp ESN/ESN.h \
 	par_utils/utimer.cpp \
-	par_utils/tasks.cpp par_utils/tasks.h \
 	par_utils/pool.cpp par_utils/pool.h \
 	par_utils/prot_queue.h \
 	-pthread \
