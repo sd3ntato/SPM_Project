@@ -19,9 +19,6 @@
 #endif
 
 #include "ESN.h"
-#include <fstream>
-#include <string>
-#include <sstream>
 #include "math.h"
 #include "matplotlibcpp.h"
 
@@ -31,7 +28,6 @@ namespace plt = matplotlibcpp;
 using namespace std;
 
 Matrix_wrapper read_dataset(string filename, int n_samples);
-float dot(int start, int stop, float *v1, float *v2);
 
 int main()
 {
@@ -88,35 +84,41 @@ int main()
 
     for (int i = 0; i < Nr; i++)
     {
-      p.submit({ new Dot_task(0, Nr, W[i], x_old, &x_rec[i] ) });
+      p.submit({new Dot_task(0, Nr, W[i], x_old, &x_rec[i])});
       // x_rec[i] = dot(0, Nr, W[i], x_old) ;
-    }
 
-    for (int i = 0; i < Nr; i++)
-    {
-      p.submit({ new Dot_task(0, Nu, Win[i], u, &x_in[i] ) });
+      p.submit({new Dot_task(0, Nu, Win[i], u, &x_in[i])});
       //x_in[i] = dot(0, Nu, Win[i], u) ;
     }
-
     p.await_no_tasks_todo();
 
-    for (int i = 0; i < Nr; i++)
+    // TODO funzione map
+    int diff = 100; //TODO mettere Nr/n_workers 
+    int start, stop;
+    for (int i = 0; i < Nr; i += diff)
     {
-      x[i] = tanh( x_rec[i] + x_in[i] + Win[i][Nu]) ;
+      int start = i;
+      int stop = min(i + diff, Nr);
+      p.submit({new Comp_state_task(start, stop, Nu, x_rec, x_in, Win, x)});
     }
-    x[Nr] = 1.0;
+    p.await_no_tasks_todo();
 
     for (int i = 0; i < Nr + 1; i++)
     {
-      z[i] = dot(0, Nr + 1, P[i], x);
+      p.submit({new Dot_task(0, Nr+1, P[i], x, &z[i])});
+      //z[i] = dot(0, Nr + 1, P[i], x);
     }
+    p.await_no_tasks_todo();
 
     for (int i = 0; i < Ny; i++)
     {
-      y[i] = dot(0, Nr + 1, Wout[i], x);
+      p.submit({new Dot_task(0, Nr+1, Wout[i], x, &y[i])});
+      //y[i] = dot(0, Nr + 1, Wout[i], x);
     }
+    p.submit({new Dot_task(0,Nr+1,x,z, &k_den)});
+    p.await_no_tasks_todo();
 
-    k_den = l + dot(0, Nr + 1, x, z);
+    k_den += l;
 
     // map
     for (int i = 0; i < Nr + 1; i++)
@@ -186,40 +188,3 @@ int main()
   return 0;
 }
 
-
-Matrix_wrapper read_dataset(string filename, int n_samples)
-{
-  string line;
-  ifstream myfile(filename);
-  Matrix_wrapper dataset = Matrix_wrapper(nullptr, 0, 0); //container for the final dataset
-  int lines_read = 0;
-  if (myfile.is_open())
-  {
-    getline(myfile, line); // discard the first line as it contains intestation.
-    while (getline(myfile, line) && lines_read < n_samples + 1)
-    {                          //get a line from the csv
-      istringstream iss(line); //turn it into this thing
-      string s;
-      string *ss = new string[12]; // each line is divided into 12 tokens (we are interested in token 1 to 5)
-      Matrix_wrapper n;
-      float *numbers = new float[4]; // keep only ohlc values
-      int i = 0;
-      while (getline(iss, s, ','))
-      {
-        ss[i] = s; //store the tokens in the apposite array
-        i++;
-      }
-      for (int i = 0; i < 5; i++)
-      {
-        numbers[i] = stof(ss[i + 1]);
-      }
-      n = from_array(numbers, 4);   //dichiarazione va spostata fuori
-      dataset = vstack(dataset, n); // put the collected line into the dataset
-      delete[] ss;
-      free_matrices({n});
-      lines_read++;
-    }
-    myfile.close();
-  }
-  return dataset;
-}
