@@ -52,6 +52,7 @@ Matrix_wrapper elementwise_tanh(Matrix_wrapper m1);
 Matrix_wrapper copy(Matrix_wrapper m1);
 Matrix_wrapper from_array(float *a, int n);
 Matrix_wrapper normalize(Matrix_wrapper mat);
+Matrix_wrapper read_dataset(std::string filename, int n_samples);
 double norm(Matrix_wrapper mat);
 double mean(Matrix_wrapper mat);
 double var(Matrix_wrapper mat);

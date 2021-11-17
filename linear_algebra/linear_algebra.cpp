@@ -514,3 +514,45 @@ float dot(int start, int stop, float *v1, float *v2)
   }
   return s;
 }
+
+
+#include <fstream>
+#include <string>
+#include <sstream>
+Matrix_wrapper read_dataset(string filename, int n_samples)
+{
+  string line;
+  ifstream myfile(filename);
+  Matrix_wrapper dataset = Matrix_wrapper(nullptr, 0, 0); //container for the final dataset
+  int lines_read = 0;
+  if (myfile.is_open())
+  {
+    getline(myfile, line); // discard the first line as it contains intestation.
+    while (getline(myfile, line) && lines_read < n_samples + 1)
+    {                          //get a line from the csv
+      istringstream iss(line); //turn it into this thing
+      string s;
+      string *ss = new string[12]; // each line is divided into 12 tokens (we are interested in token 1 to 5)
+      Matrix_wrapper n;
+      float *numbers = new float[4]; // keep only ohlc values
+      int i = 0;
+      while (getline(iss, s, ','))
+      {
+        ss[i] = s; //store the tokens in the apposite array
+        i++;
+      }
+      for (int i = 0; i < 5; i++)
+      {
+        numbers[i] = stof(ss[i + 1]);
+      }
+      n = from_array(numbers, 4);   //dichiarazione va spostata fuori
+      dataset = vstack(dataset, n); // put the collected line into the dataset
+      delete[] ss;
+      free_matrices({n});
+      lines_read++;
+    }
+    myfile.close();
+  }
+  return dataset;
+}
+
