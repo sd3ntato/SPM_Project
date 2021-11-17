@@ -64,7 +64,9 @@
       "cinttypes": "cpp",
       "typeinfo": "cpp",
       "valarray": "cpp",
-      "variant": "cpp"
+      "variant": "cpp",
+      "alignedvector3": "cpp",
+      "iterativesolvers": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled",
     "C_Cpp.vcFormat.newLine.beforeOpenBrace.block": "sameLine",
