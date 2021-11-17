@@ -5,6 +5,7 @@
 
 #include <thread>
 #include "math.h"
+#include <cassert>
 
 #ifndef prot_queue_h
 #define prot_queue_h
@@ -70,9 +71,8 @@ void Pool::await_no_tasks_todo()
 {
   for (int i = 0; i < n_workers; i++)
   {
-    while (!taskqs[i].empty())
-    {
-    }
+    taskqs[i].wait_empty();
+    //assert( taskqs[i].empty() );
   }
   return;
 }
@@ -96,6 +96,7 @@ float sum(float *a, int n)
   return s;
 }
 
+/*
 float parallel_dot(float *a, float *b, int n, Pool &p, int k)
 {
   float *results = new float[(int)ceil(n / k)];
@@ -108,3 +109,4 @@ float parallel_dot(float *a, float *b, int n, Pool &p, int k)
   delete[] results;
   return s;
 }
+*/

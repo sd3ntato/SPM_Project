@@ -20,6 +20,7 @@ public:
   void push(T const &value);
   T pop();
   bool empty();
+  void wait_empty();
 };
 
 template <typename T>
@@ -40,6 +41,7 @@ inline T queue<T>::pop()
                          { return !this->d_queue.empty(); });
   T rc(std::move(this->d_queue.back()));
   this->d_queue.pop_back();
+  d_condition.notify_all();
   return rc;
 }
 
@@ -48,4 +50,13 @@ inline bool queue<T>::empty()
 {
   unique_lock<std::mutex> lock(this->d_mutex);
   return d_queue.empty();
+  d_condition.notify_all();
+}
+
+template <typename T>
+inline void queue<T>::wait_empty()
+{
+  unique_lock<std::mutex> lock(d_mutex);
+  d_condition.wait(lock, [=]
+                   { return d_queue.empty(); });
 }
