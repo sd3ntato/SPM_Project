@@ -7,7 +7,7 @@
 class Task
 {
 public:
-  virtual void execute() {};
+  virtual void execute(){};
 };
 
 class Dot_task : public Task
@@ -41,6 +41,7 @@ private:
   float *x_rec, *x_in, *x, **Win;
 
 public:
+  Comp_state_task() = default;
   Comp_state_task(int start, int stop, int Nu, float *x_rec, float *x_in, float **Win, float *x)
   {
     this->start = start;
@@ -56,6 +57,31 @@ public:
     for (int i = start; i < stop; i++)
     {
       x[i] = tanh(x_rec[i] + x_in[i] + Win[i][Nu]); // Win[i]-> b[i] TODO
+    }
+  }
+};
+
+class Divide_by_const : public Task
+{
+private:
+  int start, stop;
+  float *v, k, *r;
+
+public:
+  Divide_by_const() = default;
+  Divide_by_const(int start, int stop, float *v, float k, float *r)
+  {
+    this->start = start;
+    this->stop = stop;
+    this->v = v;
+    this->k = k;
+    this->r = r;
+  }
+  void execute()
+  {
+    for (int i = start; i < stop; i++)
+    {
+      r[i] = (v[i] / k);
     }
   }
 };
