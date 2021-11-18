@@ -36,7 +36,7 @@ float sum(float *a, int n);
 float parallel_dot(float *a, float *b, int n, Pool &p, int k);
 
 template <typename T, typename... Args>
-void mapp(int begin, int end, int diff, Pool &p, T task, Args... args)
+void map1(int begin, int end, int diff, Pool &p, T task, Args... args)
 {
   int start, stop;
   for (int i = begin; i < end; i += diff)
@@ -44,6 +44,16 @@ void mapp(int begin, int end, int diff, Pool &p, T task, Args... args)
     start = i;
     stop = min(i + diff, end);
     p.submit({new T(start, stop, args...)});
+  }
+  p.await_no_tasks_todo();
+}
+
+template <typename T, typename... Args>
+void map2(int begin, int end, int start, int stop, Pool &p, T task, Args... args)
+{
+  for (int i = begin; i < end; i++)
+  {
+    p.submit({new T(start, stop, i, args...)});
   }
   p.await_no_tasks_todo();
 }
