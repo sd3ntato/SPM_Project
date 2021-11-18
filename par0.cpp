@@ -21,6 +21,8 @@
 #include "ESN.h"
 #include "math.h"
 #include "matplotlibcpp.h"
+#include <thread>
+#include <chrono>
 
 //#include "matplotlib-cpp/matplotlibcpp.h"
 namespace plt = matplotlibcpp;
@@ -48,7 +50,7 @@ int main()
   int Ny = 4;
   float l = 0.995;
   float nabla = 0.1;
-  int i = 0;
+  int cnt = 0;
 
   vector<double> errors_norms{};
 
@@ -76,73 +78,39 @@ int main()
 
   Pool p(7);
 
-  while (i < n_samples)
+  while (cnt < n_samples)
   {
 
-    u = dataset_n.m[i];
-    d = dataset.m[i + 1];
+    u = dataset_n.m[cnt];
+    d = dataset.m[cnt + 1];
 
-    for (int i = 0; i < Nr; i++)
-    {
-      p.submit({new Dot_task(0, Nr, W[i], x_old, &x_rec[i])});
-      // x_rec[i] = dot(0, Nr, W[i], x_old) ;
+    // compute rec and in parts of state update
+    map2(0, Nr, 0, Nr, ref(p), Dot_task(), W, x_old, x_rec);
+    map2(0, Nr, 0, Nu, ref(p), Dot_task(), Win, u, x_in);
 
-      p.submit({new Dot_task(0, Nu, Win[i], u, &x_in[i])});
-      //x_in[i] = dot(0, Nu, Win[i], u) ;
-    }
-    p.await_no_tasks_todo();
+    // compute tanh(sum...)
+    map1(0, Nr, 100, ref(p), Comp_state_task(), Nu, x_rec, x_in, Win, x);
 
-    // TODO funzione map
-    int diff = 100; //TODO mettere Nr/n_workers 
-    int start, stop;
-    for (int i = 0; i < Nr; i += diff)
-    {
-      int start = i;
-      int stop = min(i + diff, Nr);
-      p.submit({new Comp_state_task(start, stop, Nu, x_rec, x_in, Win, x)});
-    }
-    p.await_no_tasks_todo();
+    // z = P|x
+    map2(0, Nr + 1, 0, Nr + 1, ref(p), Dot_task(), P, x, z);
 
-    for (int i = 0; i < Nr + 1; i++)
-    {
-      p.submit({new Dot_task(0, Nr+1, P[i], x, &z[i])});
-      //z[i] = dot(0, Nr + 1, P[i], x);
-    }
-    p.await_no_tasks_todo();
+    // y = Wout|x
+    map2(0, Ny, 0, Nr + 1, ref(p), Dot_task(), Wout, x, y);
 
-    for (int i = 0; i < Ny; i++)
-    {
-      p.submit({new Dot_task(0, Nr+1, Wout[i], x, &y[i])});
-      //y[i] = dot(0, Nr + 1, Wout[i], x);
-    }
-    p.submit({new Dot_task(0,Nr+1,x,z, &k_den)});
+    // k_den = x.T | z
+    p.submit({new Dot_task(0, Nr + 1, 0, &x, z, &k_den)});
     p.await_no_tasks_todo();
 
     k_den += l;
 
-    // map
-    for (int i = 0; i < Nr + 1; i++)
-    {
-      k[i] = z[i] / k_den;
-    }
+    // k = z/k_den
+    map1(0, Nr + 1, 100, ref(p), Divide_by_const(), z, k_den, k);
 
-    // map
-    for (int i = 0; i < Ny; i++)
-    {
-      for (int j = 0; j < Nr + 1; j++)
-      {
-        Wout[i][j] = Wold[i][j] + (d[i] - y[i]) * k[j];
-      }
-    }
+    // Wold = ....
+    map2(0, Ny, 0, Nr + 1, ref(p), Compute_new_Wout(), Wout, Wold, d, y, k);
 
-    // map
-    for (int i = 0; i < Nr + 1; i++)
-    {
-      for (int j = 0; j < Nr + 1; j++)
-      {
-        P[i][j] = (Pold[i][j] - k[i] * z[j]) * 1 / l;
-      }
-    }
+    // P = ...
+    map2(0,Nr+1,0,Nr+1, ref(p), Compute_new_P(), P, Pold, k, z, l);
 
     // map
     for (int i = 0; i < Ny; i++)
@@ -173,10 +141,10 @@ int main()
     {
       s += pow(d[i] - y[i], 2);
     }
-    cout << sqrt(s) << " " << flush;
+    //cout << sqrt(s) << " " << flush;
     errors_norms.push_back(s);
 
-    i++;
+    cnt++;
   }
 
   cout << endl;
@@ -187,4 +155,3 @@ int main()
   cout << "\nftt!\n";
   return 0;
 }
-
