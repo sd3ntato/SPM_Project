@@ -39,6 +39,7 @@ par0: par0.cpp \
 	par_utils/utimer.cpp \
 	par_utils/tasks.h \
 	par_utils/pool.cpp par_utils/pool.h \
+	par_utils/parallel_functs.h \
 	par_utils/prot_queue.h
 	g++ -fdiagnostics-color=always -g \
 	par0.cpp \

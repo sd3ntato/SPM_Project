@@ -67,7 +67,7 @@ void Pool::terminate()
   }
 }
 
-void Pool::await_no_tasks_todo()
+void Pool::barrier()
 {
   for (int i = 0; i < n_workers; i++)
   {
