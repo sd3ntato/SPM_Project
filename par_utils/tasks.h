@@ -41,11 +41,11 @@ class Comp_state_task : public Task
 {
 private:
   int start, stop, Nu;
-  float *x_rec, *x_in, *x, **Win;
+  float *x_rec, *x_in, *x, *x_old, **Win;
 
 public:
   Comp_state_task() = default;
-  Comp_state_task(int start, int stop, int Nu, float *x_rec, float *x_in, float **Win, float *x)
+  Comp_state_task(int start, int stop, int Nu, float *x_rec, float *x_in, float **Win, float *x, float *x_old)
   {
     this->start = start;
     this->stop = stop;
@@ -54,12 +54,14 @@ public:
     this->Nu = Nu;
     this->Win = Win;
     this->x = x;
+    this->x_old = x_old;
   }
   void execute()
   {
     for (int i = start; i < stop; i++)
     {
       x[i] = tanh(x_rec[i] + x_in[i] + Win[i][Nu]); // Win[i]-> b[i] TODO
+      x_old[i] = x[i];
     }
   }
 };
@@ -113,6 +115,7 @@ public:
     for (int j = start; j < stop; j++)
     {
       Wout[i][j] = Wold[i][j] + (d[i] - y[i]) * k[j];
+      Wold[i][j] = Wout[i][j];
     }
   }
 };
@@ -141,6 +144,7 @@ public:
     for (int j = start; j < stop; j++)
     {
       P[i][j] = (Pold[i][j] - k[i] * z[j]) * 1 / l;
+      Pold[i][j] = P[i][j];
     }
   }
 };

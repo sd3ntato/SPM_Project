@@ -1,16 +1,11 @@
-#ifndef linear_algebra
-#define linear_algebra
-#include "linear_algebra.h"
-#endif
-
 #ifndef io_stream
 #define io_stream
 #include <iostream>
 #endif
 
-#ifndef prot_queue_h
-#define prot_queue_h
-#include "prot_queue.h"
+#ifndef linear_algebra
+#define linear_algebra
+#include "linear_algebra.h"
 #endif
 
 #ifndef pool_h
@@ -18,11 +13,13 @@
 #include <pool.h>
 #endif
 
-#include "ESN.h"
-#include "math.h"
+#ifndef parallel_functs_h
+#define parallel_functs_h
+#include "parallel_functs.h"
+#endif
+
+#include "ESN.h" // do not need ifndef bc only included here
 #include "matplotlibcpp.h"
-#include <thread>
-#include <chrono>
 
 //#include "matplotlib-cpp/matplotlibcpp.h"
 namespace plt = matplotlibcpp;
@@ -85,64 +82,43 @@ int main()
     d = dataset.m[cnt + 1];
 
     // compute rec and in parts of state update
-    map2(0, Nr, 0, Nr, ref(p), Dot_task(), W, x_old, x_rec);
-    map2(0, Nr, 0, Nu, ref(p), Dot_task(), Win, u, x_in);
+    parallel_matrix_dot_vector(0, Nr, 0, Nr, ref(p), W, x_old, x_rec);
+    parallel_matrix_dot_vector(0, Nr, 0, Nu, ref(p), Win, u, x_in);
+    p.barrier();
 
     // compute tanh(sum...)
-    map1(0, Nr, 100, ref(p), Comp_state_task(), Nu, x_rec, x_in, Win, x);
+    map1(0, Nr, 100, ref(p), Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);
+    p.barrier();
 
     // z = P|x
-    map2(0, Nr + 1, 0, Nr + 1, ref(p), Dot_task(), P, x, z);
+    parallel_matrix_dot_vector(0, Nr + 1, 0, Nr + 1, ref(p), P, x, z);
+    p.barrier();
 
-    // y = Wout|x
-    map2(0, Ny, 0, Nr + 1, ref(p), Dot_task(), Wout, x, y);
-
-    // k_den = x.T | z
+    // k_den = x.T | z , y = Wout|x
+    parallel_matrix_dot_vector(0, Ny, 0, Nr + 1, ref(p), Wout, x, y);
     p.submit({new Dot_task(0, Nr + 1, 0, &x, z, &k_den)});
-    p.await_no_tasks_todo();
+    p.barrier();
 
     k_den += l;
 
     // k = z/k_den
     map1(0, Nr + 1, 100, ref(p), Divide_by_const(), z, k_den, k);
+    p.barrier();
 
     // Wold = ....
     map2(0, Ny, 0, Nr + 1, ref(p), Compute_new_Wout(), Wout, Wold, d, y, k);
+    p.barrier();
 
     // P = ...
-    map2(0,Nr+1,0,Nr+1, ref(p), Compute_new_P(), P, Pold, k, z, l);
-
-    // map
-    for (int i = 0; i < Ny; i++)
-    {
-      for (int j = 0; j < Nr + 1; j++)
-      {
-        Wold[i][j] = Wout[i][j];
-      }
-    }
-
-    // map
-    for (int i = 0; i < Nr + 1; i++)
-    {
-      for (int j = 0; j < Nr + 1; j++)
-      {
-        Pold[i][j] = P[i][j];
-      }
-    }
-
-    // map
-    for (int i = 0; i < Nr + 1; i++)
-    {
-      x_old[i] = x[i];
-    }
+    map2(0, Nr + 1, 0, Nr + 1, ref(p), Compute_new_P(), P, Pold, k, z, l);
+    p.barrier();
 
     s = 0;
     for (int i = 0; i < Ny; i++)
     {
       s += pow(d[i] - y[i], 2);
     }
-    //cout << sqrt(s) << " " << flush;
-    errors_norms.push_back(s);
+    errors_norms.push_back(sqrt(s));
 
     cnt++;
   }
