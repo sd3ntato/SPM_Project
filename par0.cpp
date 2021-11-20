@@ -87,7 +87,7 @@ int main()
     p.barrier();
 
     // compute tanh(sum...)
-    map1(0, Nr, 100, ref(p), Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);
+    map1(0, Nr, ref(p), Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);
     p.barrier();
 
     // z = P|x
@@ -102,15 +102,15 @@ int main()
     k_den += l;
 
     // k = z/k_den
-    map1(0, Nr + 1, 100, ref(p), Divide_by_const(), z, k_den, k);
+    map1(0, Nr + 1, ref(p), Divide_by_const(), z, k_den, k);
     p.barrier();
 
     // Wold = ....
-    map2(0, Ny, 0, Nr + 1, ref(p), Compute_new_Wout(), Wout, Wold, d, y, k);
+    map2(0, Ny, 0, Nr + 1, -1, ref(p), Compute_new_Wout(), Wout, Wold, d, y, k);
     p.barrier();
 
     // P = ...
-    map2(0, Nr + 1, 0, Nr + 1, ref(p), Compute_new_P(), P, Pold, k, z, l);
+    map2(0, Nr + 1, 0, Nr + 1, -1, ref(p), Compute_new_P(), P, Pold, k, z, l);
     p.barrier();
 
     s = 0;
