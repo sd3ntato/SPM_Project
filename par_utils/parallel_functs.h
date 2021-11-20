@@ -11,8 +11,13 @@
 #include "math.h"
 
 template <typename T, typename... Args>
-void map1(int begin, int end, int diff, Pool &p, T task, Args... args)
+void map1(int begin, int end, Pool &p, T task, Args... args)
 {
+  int n_points = end - begin;
+  int diff = max((int)floor(n_points / p.n_workers), 128 / 4);
+  if (diff == 0)
+    diff = n_points;
+  cout<< "map1: submitting tasks in blocks of"<< diff<< endl<<flush;
   int start, stop;
   for (int i = begin; i < end; i += diff)
   {
@@ -23,24 +28,22 @@ void map1(int begin, int end, int diff, Pool &p, T task, Args... args)
 }
 
 template <typename T, typename... Args>
-void map2(int begin, int end, int start, int stop, Pool &p, T task, Args... args)
+void map2(int begin, int end, int start, int stop, int diff, Pool &p, T task, Args... args)
 {
-  for (int i = begin; i < end; i++)
+  if (diff == -1)
   {
-    p.submit({new T(start, stop, i, args...)});
+    int n_points = end - begin;
+    if (n_points <= p.n_workers)
+      diff = n_points;
+    else
+      diff = max((int)floor(n_points / p.n_workers), 128 / 4);
   }
-}
-
-template <typename T, typename... Args>
-void map3(int begin, int end, int start, int stop, int diff, Pool &p, T task, Args... args)
-{
+  cout<< "map2: submitting tasks in blocks of"<< diff<< endl<<flush;
   int i0, ii;
   for (int i = begin; i < end; i += diff)
   {
     i0 = i;
     ii = min(i + diff, end);
-    //cout << " submitting " << i0 << " " << ii << endl
-    //     << flush;
     //            horizontally   vertically
     //            |           |  |     |
     p.submit({new T(start, stop, i0, ii, args...)});
@@ -49,11 +52,7 @@ void map3(int begin, int end, int start, int stop, int diff, Pool &p, T task, Ar
 
 void parallel_matrix_dot_vector(int row_start, int row_stop, int col_start, int col_stop, Pool &p, float **M, float *v, float *r)
 {
-  int n_dots = row_stop - row_start;
-  //int diff = max( (int)floor(n_dots / p.n_workers), 128/4 );
-  //if (diff == 0)
-  //  diff = n_dots;
-  int diff = 128/4; // this does not work as I want for some reason
-  map3(row_start, row_stop, col_start, col_stop, diff, p, Multiple_Dot_task(), M, v, r);
+  int diff = 128 / 4;
+  map2(row_start, row_stop, col_start, col_stop, diff, p, Multiple_Dot_task(), M, v, r);
   p.barrier();
 }
