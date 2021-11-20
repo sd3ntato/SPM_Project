@@ -3,6 +3,8 @@
 #include "linear_algebra.h"
 #endif
 #include "math.h"
+#include <iostream>
+using namespace std;
 
 class Task
 {
@@ -145,6 +147,39 @@ public:
     {
       P[i][j] = (Pold[i][j] - k[i] * z[j]) * 1 / l;
       Pold[i][j] = P[i][j];
+    }
+  }
+};
+
+class Multiple_Dot_task : public Task
+{
+private:
+  int start;
+  int stop;
+  int i0;
+  int ii;
+  float **M;
+  float *x;
+  float *y;
+
+public:
+  Multiple_Dot_task() = default;
+  Multiple_Dot_task(int start, int stop, int i0, int ii, float **M, float *x, float *y)
+  {
+    this->start = start;
+    this->stop = stop;
+    this->i0 = i0;
+    this->ii = ii;
+    this->M = M;
+    this->x = x;
+    this->y = y;
+  }
+  void execute()
+  {
+    //cout<< "executing "<<i0<< " "<<ii <<endl<<flush;
+    for (int i = i0; i < ii; i++)
+    {
+      y[i] = dot(start, stop, M[i], x);
     }
   }
 };

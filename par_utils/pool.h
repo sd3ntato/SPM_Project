@@ -15,7 +15,6 @@ using namespace std;
 class Pool
 {
 private:
-  int n_workers;
   queue<Task *> *taskqs; // array of queues of tasks
   bool *stops;
   thread *threads; // array of workers
@@ -24,6 +23,7 @@ private:
   condition_variable terminate_condition;
 
 public:
+  int n_workers;
   Pool(int n);
   ~Pool() { this->terminate(); }
   void submit(vector<Task *> taskv);
@@ -32,5 +32,6 @@ public:
 };
 
 int min(int a, int b);
+int max(int a, int b);
 float sum(float *a, int n);
 float parallel_dot(float *a, float *b, int n, Pool &p, int k);
