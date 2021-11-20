@@ -17,7 +17,6 @@ void map1(int begin, int end, Pool &p, T task, Args... args)
   int diff = max((int)floor(n_points / p.n_workers), 128 / 4);
   if (diff == 0)
     diff = n_points;
-  cout<< "map1: submitting tasks in blocks of"<< diff<< endl<<flush;
   int start, stop;
   for (int i = begin; i < end; i += diff)
   {
@@ -38,7 +37,6 @@ void map2(int begin, int end, int start, int stop, int diff, Pool &p, T task, Ar
     else
       diff = max((int)floor(n_points / p.n_workers), 128 / 4);
   }
-  cout<< "map2: submitting tasks in blocks of"<< diff<< endl<<flush;
   int i0, ii;
   for (int i = begin; i < end; i += diff)
   {
