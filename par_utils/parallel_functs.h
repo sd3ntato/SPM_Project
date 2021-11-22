@@ -8,6 +8,11 @@
 #include <tasks.h>
 #endif
 
+#ifndef ESN_h
+#define ESN_h
+#include "ESN.h"
+#endif
+
 #include "math.h"
 
 template <typename T, typename... Args>
@@ -48,9 +53,85 @@ void map2(int begin, int end, int start, int stop, int diff, Pool &p, T task, Ar
   }
 }
 
-void parallel_matrix_dot_vector(int row_start, int row_stop, int col_start, int col_stop, Pool &p, float **M, float *v, float *r)
+void parallel_matrix_dot_vector(int row_start, int row_stop, int col_start, int col_stop, int diff, Pool &p, float **M, float *v, float *r)
 {
-  int diff = 128 / 4;
   map2(row_start, row_stop, col_start, col_stop, diff, p, Multiple_Dot_task(), M, v, r);
   p.barrier();
+}
+
+vector<double> par_train(int par_degree, int c_line_size, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
+                         int Nr, int Nu, int Ny, float nabla, float l,
+                         float **W, float **Win)
+{
+  float **Wout = zeros(Ny, Nr + 1).m;
+  float **Wold = zeros(Ny, Nr + 1).m;
+  float **P = (eye(Nr + 1) * (1 / nabla)).m;
+  float **Pold = (eye(Nr + 1) * (1 / nabla)).m;
+
+  float *x = zeros(1, Nr + 1).m[0];
+  float *x_rec = zeros(1, Nr + 1).m[0];
+  float *x_in = zeros(1, Nr + 1).m[0];
+  float *x_old = zeros(1, Nr + 1).m[0];
+
+  float *k = zeros(1, Nr + 1).m[0];
+  float *z = zeros(1, Nr + 1).m[0];
+  float *y = zeros(1, 4).m[0];
+
+  vector<double> error_norms{};
+  Pool p(par_degree);
+  int cnt = 0;
+
+  x[Nr] = 1.0;
+  x_old[Nr] = 1.0;
+  float *u;
+  float *d;
+
+  float k_den;
+  float s;
+
+  while (cnt < n_samples)
+  {
+
+    u = dataset_n.m[cnt];
+    d = dataset.m[cnt + 1];
+
+    // compute rec and in parts of state update
+    parallel_matrix_dot_vector(0, Nr, 0, Nr, c_line_size/4, ref(p), W, x_old, x_rec);
+    parallel_matrix_dot_vector(0, Nr, 0, Nu, c_line_size/4, ref(p), Win, u, x_in);
+    p.barrier();
+
+    // compute tanh(sum...)
+    map1(0, Nr, ref(p), Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);
+    p.barrier();
+
+    // z = P|x
+    parallel_matrix_dot_vector(0, Nr + 1, 0, Nr + 1, c_line_size/4, ref(p), P, x, z);
+    p.barrier();
+
+    // k_den = x.T | z , y = Wout|x
+    parallel_matrix_dot_vector(0, Ny, 0, Nr + 1, c_line_size/4, ref(p), Wout, x, y);
+    p.submit({new Dot_task(0, Nr + 1, 0, &x, z, &k_den)});
+    p.barrier();
+
+    k_den += l;
+
+    // k = z/k_den
+    map1(0, Nr + 1, ref(p), Divide_by_const(), z, k_den, k);
+    p.barrier();
+
+    // Wold = .... ,  P = ...
+    map2(0, Ny, 0, Nr + 1, -1, ref(p), Compute_new_Wout(), Wout, Wold, d, y, k);
+    map2(0, Nr + 1, 0, Nr + 1, -1, ref(p), Compute_new_P(), P, Pold, k, z, l);
+    p.barrier();
+
+    s = 0;
+    for (int i = 0; i < Ny; i++)
+    {
+      s += pow(d[i] - y[i], 2);
+    }
+    error_norms.push_back(sqrt(s));
+
+    cnt++;
+  }
+  return error_norms;
 }

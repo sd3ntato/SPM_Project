@@ -18,7 +18,11 @@
 #include "parallel_functs.h"
 #endif
 
-#include "ESN.h" // do not need ifndef bc only included here
+#ifndef ESN_h
+#define ESN_h
+#include "ESN.h"
+#endif
+
 #include "matplotlibcpp.h"
 
 //#include "matplotlib-cpp/matplotlibcpp.h"
@@ -47,83 +51,22 @@ int main()
   int Ny = 4;
   float l = 0.995;
   float nabla = 0.1;
-  int cnt = 0;
-
-  vector<double> errors_norms{};
 
   ESN n = ESN(Nr = Nr, Nu = Nu, Ny = Ny);
   float **W = n.W.m;
   float **Win = n.Win.m;
-  float **Wout = zeros(Ny, Nr + 1).m;
-  float **Wold = zeros(Ny, Nr + 1).m;
-  float **P = (eye(Nr + 1) * (1 / nabla)).m;
-  float **Pold = (eye(Nr + 1) * (1 / nabla)).m;
+  
+  int c_line_size=128;
 
-  float *x = zeros(1, Nr + 1).m[0];
-  float *x_rec = zeros(1, Nr + 1).m[0];
-  float *x_in = zeros(1, Nr + 1).m[0];
-  float *x_old = zeros(1, Nr + 1).m[0];
-  x_old[Nr] = 1.0;
-  float *k = zeros(1, Nr + 1).m[0];
-  float *z = zeros(1, Nr + 1).m[0];
-  float *y = zeros(1, 4).m[0];
-  float *u;
-  float *d;
-
-  float k_den;
-  float s;
-
-  Pool p(7);
-
-  while (cnt < n_samples)
+  for (int par_deg = 1; par_deg < 10; par_deg++)
   {
+    vector<double> errors_norms = par_train(par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l,
+                                            W, Win);
 
-    u = dataset_n.m[cnt];
-    d = dataset.m[cnt + 1];
-
-    // compute rec and in parts of state update
-    parallel_matrix_dot_vector(0, Nr, 0, Nr, ref(p), W, x_old, x_rec);
-    parallel_matrix_dot_vector(0, Nr, 0, Nu, ref(p), Win, u, x_in);
-    p.barrier();
-
-    // compute tanh(sum...)
-    map1(0, Nr, ref(p), Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);
-    p.barrier();
-
-    // z = P|x
-    parallel_matrix_dot_vector(0, Nr + 1, 0, Nr + 1, ref(p), P, x, z);
-    p.barrier();
-
-    // k_den = x.T | z , y = Wout|x
-    parallel_matrix_dot_vector(0, Ny, 0, Nr + 1, ref(p), Wout, x, y);
-    p.submit({new Dot_task(0, Nr + 1, 0, &x, z, &k_den)});
-    p.barrier();
-
-    k_den += l;
-
-    // k = z/k_den
-    map1(0, Nr + 1, ref(p), Divide_by_const(), z, k_den, k);
-    p.barrier();
-
-    // Wold = .... ,  P = ...
-    map2(0, Ny, 0, Nr + 1, -1, ref(p), Compute_new_Wout(), Wout, Wold, d, y, k);
-    map2(0, Nr + 1, 0, Nr + 1, -1, ref(p), Compute_new_P(), P, Pold, k, z, l);
-    p.barrier();
-
-    s = 0;
-    for (int i = 0; i < Ny; i++)
-    {
-      s += pow(d[i] - y[i], 2);
-    }
-    errors_norms.push_back(sqrt(s));
-
-    cnt++;
+    errors_norms.erase(errors_norms.begin());
+    plt::plot(errors_norms);
+    plt::show();
   }
-
-  cout << endl;
-  errors_norms.erase(errors_norms.begin());
-  plt::plot(errors_norms);
-  plt::show();
 
   cout << "\nftt!\n";
   return 0;
