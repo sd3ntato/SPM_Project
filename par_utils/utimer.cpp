@@ -14,15 +14,15 @@ class utimer {
   using msecs = std::chrono::milliseconds;
 
 private:
-  long * us_elapsed;
+  double * us_elapsed;
   
 public:
 
-  utimer(const std::string m) : message(m),us_elapsed((long *)NULL) {
+  utimer(const std::string m) : message(m),us_elapsed((double *)NULL) {
     start = std::chrono::system_clock::now();
   }
     
-  utimer(const std::string m, long * us) : message(m),us_elapsed(us) {
+  utimer(const std::string m, double * us) : message(m),us_elapsed(us) {
     start = std::chrono::system_clock::now();
   }
 
@@ -31,7 +31,7 @@ public:
       std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed =
       stop - start;
-    auto musec =
+    auto musec = (double)
       std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
     
     std::cout << message << " computed in " << musec << " usec " 
