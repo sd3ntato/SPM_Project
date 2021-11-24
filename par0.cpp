@@ -23,6 +23,13 @@
 #include "ESN.h"
 #endif
 
+#ifndef utimer_cpp
+#define utimer_cpp
+#include "utimer.cpp"
+#endif
+
+#include <limits>
+
 #include "matplotlibcpp.h"
 
 //#include "matplotlib-cpp/matplotlibcpp.h"
@@ -30,43 +37,24 @@ namespace plt = matplotlibcpp;
 
 using namespace std;
 
-Matrix_wrapper read_dataset(string filename, int n_samples);
-
 int main()
 {
-  int n_samples = 1000;
+  int n_samples = 300;
+  int n_trials = 2;
+  int c_line_size = 128;
 
   cout << "reading dataset...";
   Matrix_wrapper dataset = read_dataset("BTCUSDT-1m-data.csv", n_samples);
   Matrix_wrapper dataset_n = normalize(dataset);
   cout << "dataset read" << endl;
 
-  int Nr;
-  string input;
-  cout << "insert number of recurrent neurons: \n";
-  cin >> input;
-  Nr = stoi(input);
+  vector<double> times1 = compute_average_times(2000, n_samples, n_trials, c_line_size, dataset, dataset_n);
+  vector<double> times2 = compute_average_times(1000, n_samples, n_trials, c_line_size, dataset, dataset_n);
 
-  int Nu = 4;
-  int Ny = 4;
-  float l = 0.995;
-  float nabla = 0.1;
-
-  ESN n = ESN(Nr = Nr, Nu = Nu, Ny = Ny);
-  float **W = n.W.m;
-  float **Win = n.Win.m;
-  
-  int c_line_size=128;
-
-  for (int par_deg = 1; par_deg < 10; par_deg++)
-  {
-    vector<double> errors_norms = par_train(par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l,
-                                            W, Win);
-
-    errors_norms.erase(errors_norms.begin());
-    plt::plot(errors_norms);
-    plt::show();
-  }
+  plt::named_plot("1000 neurons", times1, "-x"); // TODO error bar con varianza
+  plt::named_plot("2000 neurons", times2, "-x");
+  plt::legend();
+  plt::show();
 
   cout << "\nftt!\n";
   return 0;

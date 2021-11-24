@@ -96,8 +96,8 @@ vector<double> par_train(int par_degree, int c_line_size, int n_samples, Matrix_
     d = dataset.m[cnt + 1];
 
     // compute rec and in parts of state update
-    parallel_matrix_dot_vector(0, Nr, 0, Nr, c_line_size/4, ref(p), W, x_old, x_rec);
-    parallel_matrix_dot_vector(0, Nr, 0, Nu, c_line_size/4, ref(p), Win, u, x_in);
+    parallel_matrix_dot_vector(0, Nr, 0, Nr, c_line_size / 4, ref(p), W, x_old, x_rec);
+    parallel_matrix_dot_vector(0, Nr, 0, Nu, c_line_size / 4, ref(p), Win, u, x_in);
     p.barrier();
 
     // compute tanh(sum...)
@@ -105,11 +105,11 @@ vector<double> par_train(int par_degree, int c_line_size, int n_samples, Matrix_
     p.barrier();
 
     // z = P|x
-    parallel_matrix_dot_vector(0, Nr + 1, 0, Nr + 1, c_line_size/4, ref(p), P, x, z);
+    parallel_matrix_dot_vector(0, Nr + 1, 0, Nr + 1, c_line_size / 4, ref(p), P, x, z);
     p.barrier();
 
     // k_den = x.T | z , y = Wout|x
-    parallel_matrix_dot_vector(0, Ny, 0, Nr + 1, c_line_size/4, ref(p), Wout, x, y);
+    parallel_matrix_dot_vector(0, Ny, 0, Nr + 1, c_line_size / 4, ref(p), Wout, x, y);
     p.submit({new Dot_task(0, Nr + 1, 0, &x, z, &k_den)});
     p.barrier();
 
@@ -134,4 +134,36 @@ vector<double> par_train(int par_degree, int c_line_size, int n_samples, Matrix_
     cnt++;
   }
   return error_norms;
+}
+
+#ifndef utimer_cpp
+#define utimer_cpp
+#include "utimer.cpp"
+#endif
+vector<double> compute_average_times(int Nr, int n_samples, int n_trials, int c_line_size, Matrix_wrapper dataset, Matrix_wrapper dataset_n)
+{
+  int Nu = 4;
+  int Ny = 4;
+  float l = 0.995;
+  float nabla = 0.1;
+
+  ESN n = ESN(Nr = Nr, Nu = Nu, Ny = Ny);
+  float **W = n.W.m;
+  float **Win = n.Win.m;
+
+  vector<double> times(11);
+  times[0] = std::numeric_limits<double>::quiet_NaN();
+  for (int par_deg = 1; par_deg < 11; par_deg++)
+  {
+    {
+      vector<double> ts(n_trials);
+      for (int i = 0; i < n_trials; i++)
+      {
+        utimer t(to_string(par_deg), &ts[i]);
+        par_train(par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win);
+      }
+      times[par_deg] = mean(ts);
+    }
+  }
+  return times;
 }
