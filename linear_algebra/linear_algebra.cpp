@@ -556,3 +556,13 @@ Matrix_wrapper read_dataset(string filename, int n_samples)
   return dataset;
 }
 
+#include <vector>
+double mean(std::vector<double> ts)
+{
+  double r = 0.0;
+  for (int i = 0; i < ts.size(); i++)
+  {
+    r += ts[i];
+  }
+  return r / ts.size();
+}
