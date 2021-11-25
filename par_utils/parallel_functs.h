@@ -140,7 +140,7 @@ vector<double> par_train(int par_degree, int c_line_size, int n_samples, Matrix_
 #define utimer_cpp
 #include "utimer.cpp"
 #endif
-vector<double> compute_average_times(int Nr, int n_samples, int n_trials, int c_line_size, Matrix_wrapper dataset, Matrix_wrapper dataset_n)
+vector<double> compute_average_times(int Nr, int n_samples, int n_trials, int max_par_degree, int c_line_size, Matrix_wrapper dataset, Matrix_wrapper dataset_n)
 {
   int Nu = 4;
   int Ny = 4;
@@ -151,9 +151,9 @@ vector<double> compute_average_times(int Nr, int n_samples, int n_trials, int c_
   float **W = n.W.m;
   float **Win = n.Win.m;
 
-  vector<double> times(11);
+  vector<double> times(max_par_degree + 1);
   times[0] = std::numeric_limits<double>::quiet_NaN();
-  for (int par_deg = 1; par_deg < 11; par_deg++)
+  for (int par_deg = 1; par_deg < max_par_degree + 1; par_deg++)
   {
     {
       vector<double> ts(n_trials);
