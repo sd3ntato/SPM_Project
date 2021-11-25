@@ -28,33 +28,43 @@
 #include "utimer.cpp"
 #endif
 
+#include "seq_functs.h"
+#include "utils.h"
+
 #include <limits>
-
-#include "matplotlibcpp.h"
-
-//#include "matplotlib-cpp/matplotlibcpp.h"
-namespace plt = matplotlibcpp;
 
 using namespace std;
 
 int main()
 {
-  int n_samples = 300;
-  int n_trials = 2;
+  int n_samples = 100;
+  int n_trials = 1;
   int c_line_size = 128;
+  int max_par_degree = 10;
 
   cout << "reading dataset...";
   Matrix_wrapper dataset = read_dataset("BTCUSDT-1m-data.csv", n_samples);
   Matrix_wrapper dataset_n = normalize(dataset);
   cout << "dataset read" << endl;
 
-  vector<double> times1 = compute_average_times(2000, n_samples, n_trials, c_line_size, dataset, dataset_n);
-  vector<double> times2 = compute_average_times(1000, n_samples, n_trials, c_line_size, dataset, dataset_n);
+  vector<int> Nrs = {100, 200};
+  vector<double> *times_for_each_Nr = new vector<double>[Nrs.size()];
+  vector<double> *speedups_for_each_Nr = new vector<double>[Nrs.size()];
+  vector<double> *scalabilities_for_each_Nr = new vector<double>[Nrs.size()];
+  vector<double> *efficiencies_for_each_Nr = new vector<double>[Nrs.size()];
+  for (int i = 0; i < Nrs.size(); i++)
+  {
+    double t0 = compute_sequential_time(Nrs[i], n_samples, n_trials, dataset, dataset_n);
+    times_for_each_Nr[i] = compute_average_times(Nrs[i], n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n);
+    speedups_for_each_Nr[i] = compute_speedups(times_for_each_Nr[i], t0);
+    scalabilities_for_each_Nr[i] = compute_scalabilities(times_for_each_Nr[i]);
+    efficiencies_for_each_Nr[i] = compute_effieciencies(speedups_for_each_Nr[i]);
+  }
 
-  plt::named_plot("1000 neurons", times1, "-x"); // TODO error bar con varianza
-  plt::named_plot("2000 neurons", times2, "-x");
-  plt::legend();
-  plt::show();
+  plot(Nrs, times_for_each_Nr, "times", n_trials);
+  plot(Nrs, speedups_for_each_Nr, "speedups", n_trials);
+  plot(Nrs, scalabilities_for_each_Nr, "scalabilities", n_trials);
+  plot(Nrs, efficiencies_for_each_Nr, "efficiencies", n_trials);
 
   cout << "\nftt!\n";
   return 0;
