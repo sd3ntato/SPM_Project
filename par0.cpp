@@ -47,15 +47,19 @@ int main()
   Matrix_wrapper dataset_n = normalize(dataset);
   cout << "dataset read" << endl;
 
-  vector<int> Nrs = {100, 200};
+  vector<int> Nrs = {100, 200, 1000};
   vector<double> *times_for_each_Nr = new vector<double>[Nrs.size()];
   vector<double> *speedups_for_each_Nr = new vector<double>[Nrs.size()];
   vector<double> *scalabilities_for_each_Nr = new vector<double>[Nrs.size()];
   vector<double> *efficiencies_for_each_Nr = new vector<double>[Nrs.size()];
   for (int i = 0; i < Nrs.size(); i++)
   {
-    double t0 = compute_sequential_time(Nrs[i], n_samples, n_trials, dataset, dataset_n);
-    times_for_each_Nr[i] = compute_average_times(Nrs[i], n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n);
+
+    ESN n = ESN(Nrs[i], 4, 4);
+    float **W = n.W.m;
+    float **Win = n.Win.m;
+    double t0 = compute_sequential_time(Nrs[i], n_samples, n_trials, dataset, dataset_n, W, Win);
+    times_for_each_Nr[i] = compute_average_times(Nrs[i], n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win);
     speedups_for_each_Nr[i] = compute_speedups(times_for_each_Nr[i], t0);
     scalabilities_for_each_Nr[i] = compute_scalabilities(times_for_each_Nr[i]);
     efficiencies_for_each_Nr[i] = compute_effieciencies(speedups_for_each_Nr[i]);

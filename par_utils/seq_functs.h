@@ -133,16 +133,12 @@ vector<double> seq_train(int n_samples, Matrix_wrapper dataset, Matrix_wrapper d
   return error_norms;
 }
 
-double compute_sequential_time(int Nr, int n_samples, int n_trials, Matrix_wrapper dataset, Matrix_wrapper dataset_n)
+double compute_sequential_time(int Nr, int n_samples, int n_trials, Matrix_wrapper dataset, Matrix_wrapper dataset_n, float **W, float **Win)
 {
   int Nu = 4;
   int Ny = 4;
   float l = 0.995;
   float nabla = 0.1;
-
-  ESN n = ESN(Nr = Nr, Nu = Nu, Ny = Ny);
-  float **W = n.W.m;
-  float **Win = n.Win.m;
 
   vector<double> ts(n_trials);
   for (int i = 0; i < n_trials; i++)
