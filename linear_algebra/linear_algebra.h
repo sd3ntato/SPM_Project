@@ -60,3 +60,6 @@ void free_matrices(std::vector<Matrix_wrapper> matrices);
 float spectral_radius(MatrixXd M);
 float dot(int start, int stop, float *v1, float *v2);
 double mean(std::vector<double> ts);
+float **zeros(int n1, int n2, float **place);
+float *zeros(int n1, float *place);
+float **resetP(int n1, int n2, float **P, float nabla);

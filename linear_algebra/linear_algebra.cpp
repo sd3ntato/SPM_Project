@@ -5,7 +5,6 @@
 
 using namespace std;
 
-
 Matrix_wrapper::Matrix_wrapper(float **m, int n1, int n2)
 {
   this->m = m;
@@ -503,8 +502,6 @@ Matrix_wrapper build_sparse_contractive_matrix(int n1, int n2)
   return mm;
 }
 
-
-
 float dot(int start, int stop, float *v1, float *v2)
 {
   float s = 0.0;
@@ -514,7 +511,6 @@ float dot(int start, int stop, float *v1, float *v2)
   }
   return s;
 }
-
 
 #include <fstream>
 #include <string>
@@ -565,4 +561,38 @@ double mean(std::vector<double> ts)
     r += ts[i];
   }
   return r / ts.size();
+}
+
+float **zeros(int n1, int n2, float **place)
+{
+  for (int i = 0; i < n1; i++)
+  {
+    for (int j = 0; j < n2; j++)
+    {
+      place[i][j] = 0;
+    }
+  }
+  return place;
+}
+
+float *zeros(int n1, float *place)
+{
+  for (int i = 0; i < n1; i++)
+  {
+    place[i] = 0;
+  }
+  return place;
+}
+
+float **resetP(int n1, int n2, float **P, float nabla)
+{
+  for (int i = 0; i < n1; i++)
+  {
+    for (int j = 0; j < n2; j++)
+    {
+      P[i][j] = 0;
+    }
+    P[i][i] = 1 / nabla;
+  }
+  return P;
 }
