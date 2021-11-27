@@ -13,6 +13,9 @@
 #include "ESN.h"
 #endif
 
+#include "matplotlibcpp.h"
+namespace plt = matplotlibcpp;
+
 #include "math.h"
 
 template <typename T, typename... Args>
@@ -59,14 +62,36 @@ void parallel_matrix_dot_vector(int row_start, int row_stop, int col_start, int 
   p.barrier();
 }
 
+float **zeros(int n1, int n2, float **place)
+{
+  for (int i = 0; i < n1; i++)
+  {
+    for (int j = 0; j < n2; j++)
+    {
+      place[i][j] = 0;
+    }
+  }
+  return place;
+}
+
+float** resetP(int n1,int n2,float** P, float nabla){
+  for(int i=0;i<n1;i++){
+    for(int j=0;j<n2;j++){
+      P[i][j]=0;
+    }
+    P[i][i]=1/nabla;
+  }
+  return P;
+}
+
 vector<double> par_train(int par_degree, int c_line_size, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
                          int Nr, int Nu, int Ny, float nabla, float l,
-                         float **W, float **Win)
+                         float **W, float **Win, float** Wout, float** Wold,float** P, float** Pold)
 {
-  float **Wout = zeros(Ny, Nr + 1).m;
-  float **Wold = zeros(Ny, Nr + 1).m;
-  float **P = (eye(Nr + 1) * (1 / nabla)).m;
-  float **Pold = (eye(Nr + 1) * (1 / nabla)).m;
+  Wout = zeros(Ny, Nr + 1, Wout);
+  Wold = zeros(Ny, Nr + 1,Wold);
+  P = resetP(Nr+1,Nr+1,P,nabla);
+  Pold = resetP(Nr+1,Nr+1,P,nabla);
 
   float *x = zeros(1, Nr + 1).m[0];
   float *x_rec = zeros(1, Nr + 1).m[0];
@@ -140,7 +165,8 @@ vector<double> par_train(int par_degree, int c_line_size, int n_samples, Matrix_
 #define utimer_cpp
 #include "utimer.cpp"
 #endif
-vector<double> compute_average_times(int Nr, int n_samples, int n_trials, int max_par_degree, int c_line_size, Matrix_wrapper dataset, Matrix_wrapper dataset_n, float **W, float **Win)
+vector<double> compute_average_times(int Nr, int n_samples, int n_trials, int max_par_degree, int c_line_size, Matrix_wrapper dataset, Matrix_wrapper dataset_n, float **W, float **Win,
+float** Wout, float** Wold, float** P, float** Pold)
 {
   int Nu = 4;
   int Ny = 4;
@@ -156,7 +182,10 @@ vector<double> compute_average_times(int Nr, int n_samples, int n_trials, int ma
       for (int i = 0; i < n_trials; i++)
       {
         utimer t(to_string(par_deg), &ts[i]);
-        par_train(par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win);
+        auto err = par_train(par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win, Wout, Wold, P, Pold);
+        plt::plot(err);
+        plt::title("err with "+to_string(Nr)+" neurons and par deg "+to_string(par_deg));
+        plt::save("imgs/" + to_string(Nr)+"-"+to_string(par_deg) + "-err");
       }
       times[par_deg] = mean(ts);
     }
