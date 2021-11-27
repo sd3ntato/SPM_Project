@@ -9,25 +9,21 @@
 #include "linear_algebra.h"
 #endif
 
+#ifndef utils_h
+#define utils_h
+#include "utils.h"
+#endif
+
 #include "math.h"
 
 vector<double> seq_train(int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
                          int Nr, int Nu, int Ny, float nabla, float l,
-                         float **W, float **Win)
+                         float **W, float **Win,
+                         float **Wout, float **Wold, float **P, float **Pold,
+                         float *x, float *x_rec, float *x_in, float *x_old, float *k, float *z, float *y)
 {
-  float **Wout = zeros(Ny, Nr + 1).m;
-  float **Wold = zeros(Ny, Nr + 1).m;
-  float **P = (eye(Nr + 1) * (1 / nabla)).m;
-  float **Pold = (eye(Nr + 1) * (1 / nabla)).m;
-
-  float *x = zeros(1, Nr + 1).m[0];
-  float *x_rec = zeros(1, Nr + 1).m[0];
-  float *x_in = zeros(1, Nr + 1).m[0];
-  float *x_old = zeros(1, Nr + 1).m[0];
-
-  float *k = zeros(1, Nr + 1).m[0];
-  float *z = zeros(1, Nr + 1).m[0];
-  float *y = zeros(1, 4).m[0];
+  tie(Wout, Wold, P, Pold) = prepare_matrices(Nr, Ny, Wout, Wold, P, Pold, nabla);
+  tie(x, x_rec, x_in, x_old, k, z, y) = prepare_vectors(Nr, x, x_rec, x_in, x_old, k, z, y);
 
   vector<double> error_norms{};
   int i = 0;
@@ -133,7 +129,9 @@ vector<double> seq_train(int n_samples, Matrix_wrapper dataset, Matrix_wrapper d
   return error_norms;
 }
 
-double compute_sequential_time(int Nr, int n_samples, int n_trials, Matrix_wrapper dataset, Matrix_wrapper dataset_n, float **W, float **Win)
+double compute_sequential_time(int Nr, int n_samples, int n_trials, Matrix_wrapper dataset, Matrix_wrapper dataset_n, float **W, float **Win,
+                               float **Wout, float **Wold, float **P, float **Pold,
+                               float *x, float *x_rec, float *x_in, float *x_old, float *k, float *z, float *y)
 {
   int Nu = 4;
   int Ny = 4;
@@ -144,7 +142,10 @@ double compute_sequential_time(int Nr, int n_samples, int n_trials, Matrix_wrapp
   for (int i = 0; i < n_trials; i++)
   {
     utimer t("seq", &ts[i]);
-    seq_train(n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win);
+    auto err = seq_train(n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
+    plt::plot(err);
+    plt::title("err with " + to_string(Nr) + " neurons and par deg seq");
+    plt::save("imgs/" + to_string(Nr) + "-seq" + "-err");
   }
 
   return mean(ts);

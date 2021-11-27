@@ -51,3 +51,25 @@ void plot(vector<int> Nrs, vector<double> *v, string s, int n_trials)
   plt::save("imgs/" + s + "-nworkers");
   plt::show();
 }
+
+tuple<float **, float **, float **, float **> prepare_matrices(int Nr, int Ny, float **Wout, float **Wold, float **P, float **Pold, float nabla)
+{
+  Wout = zeros(Ny, Nr + 1, Wout);
+  Wold = zeros(Ny, Nr + 1, Wold);
+  P = resetP(Nr + 1, Nr + 1, P, nabla);
+  Pold = resetP(Nr + 1, Nr + 1, P, nabla);
+  return make_tuple(Wout, Wold, P, Pold);
+}
+
+tuple<float *, float *, float *, float *, float *, float *, float *> prepare_vectors(int Nr, float *x, float *x_rec, float *x_in, float *x_old, float *k, float *z, float *y)
+{
+  x = zeros(Nr + 1, x);
+  x_rec = zeros(Nr + 1, x_rec);
+  x_in = zeros(Nr + 1, x_in);
+  x_old = zeros(Nr + 1, x_old);
+
+  k = zeros(Nr + 1, k);
+  z = zeros(Nr + 1, z);
+  y = zeros(4, y);
+  return make_tuple(x, x_rec, x_in, x_old, k, z, y);
+}
