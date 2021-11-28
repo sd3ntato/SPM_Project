@@ -143,9 +143,9 @@ double compute_sequential_time(int Nr, int n_samples, int n_trials, Matrix_wrapp
   {
     utimer t("seq", &ts[i]);
     auto err = seq_train(n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
-    plt::plot(err);
-    plt::title("err with " + to_string(Nr) + " neurons and par deg seq");
-    plt::save("imgs/" + to_string(Nr) + "-seq" + "-err");
+    // plt::plot(err);
+    // plt::title("err with " + to_string(Nr) + " neurons and par deg seq");
+    // plt::save("imgs/" + to_string(Nr) + "-seq" + "-err");
   }
 
   return mean(ts);

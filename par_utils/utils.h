@@ -37,7 +37,7 @@ vector<double> compute_effieciencies(vector<double> speedups)
   return efficiencies;
 }
 
-void plot(vector<int> Nrs, vector<double> *v, string s, int n_trials)
+void plot(vector<int> Nrs, vector<double> *v, string s, int n_trials, bool ff)
 {
   plt::figure_size(1200, 780);
   for (int i = 0; i < Nrs.size(); i++)
@@ -46,10 +46,19 @@ void plot(vector<int> Nrs, vector<double> *v, string s, int n_trials)
   }
   plt::xlabel("number of workers");
   plt::ylabel("average " + s + " on " + to_string(n_trials) + " executions");
-  plt::title(s + " vs. number of workers");
-  plt::legend();
-  plt::save("imgs/" + s + "-nworkers");
-  plt::show();
+  if (ff)
+  {
+    plt::title(s + " vs. number of workers with ff");
+    plt::legend();
+    plt::save("imgs/" + s + "-nworkers_ff");
+  }
+  else
+  {
+    plt::title(s + " vs. number of workers");
+    plt::legend();
+    plt::save("imgs/" + s + "-nworkers");
+  }
+  //plt::show();
 }
 
 tuple<float **, float **, float **, float **> prepare_matrices(int Nr, int Ny, float **Wout, float **Wold, float **P, float **Pold, float nabla)

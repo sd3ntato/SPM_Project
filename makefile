@@ -50,5 +50,5 @@ par0: par0.cpp \
 	par_utils/utimer.cpp \
 	par_utils/pool.cpp \
 	-pthread \
-	-lpython3.8 -o par0 -pipe -O3 -fopenmp  -ggdb3 \
-	-I/usr/include/python3.8 -I ./spectra/include -I ./eigen -I ./matplotlib-cpp/ -I./linear_algebra -I./ESN -I./par_utils
+	-lpython3.8 -o par0 -pipe -O3 \
+	-I/usr/include/python3.8 -I ./spectra/include -I ./eigen -I ./matplotlib-cpp/ -I./linear_algebra -I./ESN -I./par_utils -I./fastflow

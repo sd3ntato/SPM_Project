@@ -18,6 +18,9 @@
 #include "utils.h"
 #endif
 
+#include <ff/ff.hpp>
+#include <ff/parallel_for.hpp>
+
 #include "matplotlibcpp.h"
 namespace plt = matplotlibcpp;
 
@@ -135,11 +138,107 @@ vector<double> par_train(int par_degree, int c_line_size, int n_samples, Matrix_
   return error_norms;
 }
 
+void parallel_matrix_dot_vector_ff(int row_start, int row_stop, int col_start, int col_stop, ff::ParallelFor &p, float **M, float *v, float *r)
+{
+  auto dot_f = [&](const int i)
+  {
+    r[i] = dot(col_start, col_stop, M[i], v);
+  };
+  p.parallel_for(row_start, row_stop, dot_f);
+}
+
+vector<double> par_train_ff(int par_degree, int c_line_size, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
+                            int Nr, int Nu, int Ny, float nabla, float l,
+                            float **W, float **Win, float **Wout, float **Wold, float **P, float **Pold,
+                            float *x, float *x_rec, float *x_in, float *x_old, float *k, float *z, float *y)
+{
+
+  tie(Wout, Wold, P, Pold) = prepare_matrices(Nr, Ny, Wout, Wold, P, Pold, nabla);
+  tie(x, x_rec, x_in, x_old, k, z, y) = prepare_vectors(Nr, x, x_rec, x_in, x_old, k, z, y);
+
+  vector<double> error_norms{};
+  ff::ParallelFor p(par_degree);
+  int cnt = 0;
+
+  x[Nr] = 1.0;
+  x_old[Nr] = 1.0;
+  float *u;
+  float *d;
+
+  float k_den;
+  float s;
+
+  while (cnt < n_samples)
+  {
+
+    u = dataset_n.m[cnt];
+    d = dataset.m[cnt + 1];
+
+    // compute rec and in parts of state update
+    parallel_matrix_dot_vector_ff(0, Nr, 0, Nr, ref(p), W, x_old, x_rec);
+    parallel_matrix_dot_vector_ff(0, Nr, 0, Nu, ref(p), Win, u, x_in);
+
+    // compute tanh(sum...)
+    auto comp_state_f = [&](const int i)
+    {
+      x[i] = tanh(x_rec[i] + x_in[i] + Win[i][Nu]); // Win[i]-> b[i] TODO
+      x_old[i] = x[i];
+    };
+    p.parallel_for(0, Nr, comp_state_f);
+
+    // z = P|x
+    parallel_matrix_dot_vector_ff(0, Nr + 1, 0, Nr + 1, ref(p), P, x, z);
+
+    // k_den = x.T | z , y = Wout|x
+    parallel_matrix_dot_vector_ff(0, Ny, 0, Nr + 1, ref(p), Wout, x, y);
+    k_den = dot(0, Nr + 1, x, z);
+    k_den += l;
+
+    // k = z/k_den
+    auto divide_by_const_f = [&](const int i)
+    {
+      k[i] = (z[i] / k_den);
+    };
+    p.parallel_for(0, Nr + 1, divide_by_const_f);
+
+    // Wold = .... ,  P = ...
+    auto compute_new_wout_f = [&](const int i)
+    {
+      for (int j = 0; j < Nr + 1; j++)
+      {
+        Wout[i][j] = Wold[i][j] + (d[i] - y[i]) * k[j];
+        Wold[i][j] = Wout[i][j];
+      }
+    };
+    p.parallel_for(0, Ny, compute_new_wout_f);
+
+    auto compute_new_p_f = [&](const int i)
+    {
+      for (int j = 0; j < Nr + 1; j++)
+      {
+        P[i][j] = (Pold[i][j] - k[i] * z[j]) * 1 / l;
+        Pold[i][j] = P[i][j];
+      }
+    };
+    p.parallel_for(0, Nr + 1, compute_new_p_f);
+
+    s = 0;
+    for (int i = 0; i < Ny; i++)
+    {
+      s += pow(d[i] - y[i], 2);
+    }
+    error_norms.push_back(sqrt(s));
+
+    cnt++;
+  }
+  return error_norms;
+}
+
 #ifndef utimer_cpp
 #define utimer_cpp
 #include "utimer.cpp"
 #endif
-vector<double> compute_average_times(int Nr, int n_samples, int n_trials, int max_par_degree, int c_line_size, Matrix_wrapper dataset, Matrix_wrapper dataset_n, float **W, float **Win,
+vector<double> compute_average_times(bool ff, int Nr, int n_samples, int n_trials, int max_par_degree, int c_line_size, Matrix_wrapper dataset, Matrix_wrapper dataset_n, float **W, float **Win,
                                      float **Wout, float **Wold, float **P, float **Pold,
                                      float *x, float *x_rec, float *x_in, float *x_old, float *k, float *z, float *y)
 {
@@ -157,10 +256,13 @@ vector<double> compute_average_times(int Nr, int n_samples, int n_trials, int ma
       for (int i = 0; i < n_trials; i++)
       {
         utimer t(to_string(par_deg), &ts[i]);
-        auto err = par_train(par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
-        plt::plot(err);
-        plt::title("err with " + to_string(Nr) + " neurons and par deg " + to_string(par_deg));
-        plt::save("imgs/" + to_string(Nr) + "-" + to_string(par_deg) + "-err");
+        if (ff)
+          auto err = par_train_ff(par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
+        else
+          auto err = par_train(par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
+        // plt::plot(err);
+        // plt::title("err with " + to_string(Nr) + " neurons and par deg " + to_string(par_deg));
+        // plt::save("imgs/" + to_string(Nr) + "-" + to_string(par_deg) + "-err");
       }
       times[par_deg] = mean(ts);
     }

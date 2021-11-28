@@ -51,11 +51,15 @@ int main()
   Matrix_wrapper dataset_n = normalize(dataset);
   cout << "dataset read" << endl;
 
-  vector<int> Nrs = {300, 200, 100};
+  vector<int> Nrs = {2000,1000};
   vector<double> *times_for_each_Nr = new vector<double>[Nrs.size()];
   vector<double> *speedups_for_each_Nr = new vector<double>[Nrs.size()];
   vector<double> *scalabilities_for_each_Nr = new vector<double>[Nrs.size()];
   vector<double> *efficiencies_for_each_Nr = new vector<double>[Nrs.size()];
+  vector<double> *times_for_each_Nr_ff = new vector<double>[Nrs.size()];
+  vector<double> *speedups_for_each_Nr_ff = new vector<double>[Nrs.size()];
+  vector<double> *scalabilities_for_each_Nr_ff = new vector<double>[Nrs.size()];
+  vector<double> *efficiencies_for_each_Nr_ff = new vector<double>[Nrs.size()];
   for (int i = 0; i < Nrs.size(); i++)
   {
 
@@ -78,16 +82,29 @@ int main()
     float *y = zeros(1, 4).m[0];
 
     double t0 = compute_sequential_time(Nr, n_samples, n_trials, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
-    times_for_each_Nr[i] = compute_average_times(Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
+    
+    //without fastflow
+    times_for_each_Nr[i] = compute_average_times(false, Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
     speedups_for_each_Nr[i] = compute_speedups(times_for_each_Nr[i], t0);
     scalabilities_for_each_Nr[i] = compute_scalabilities(times_for_each_Nr[i]);
     efficiencies_for_each_Nr[i] = compute_effieciencies(speedups_for_each_Nr[i]);
+
+    // with fastflow
+    times_for_each_Nr_ff[i] = compute_average_times(true, Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
+    speedups_for_each_Nr_ff[i] = compute_speedups(times_for_each_Nr_ff[i], t0);
+    scalabilities_for_each_Nr_ff[i] = compute_scalabilities(times_for_each_Nr_ff[i]);
+    efficiencies_for_each_Nr_ff[i] = compute_effieciencies(speedups_for_each_Nr_ff[i]);
   }
 
-  plot(Nrs, times_for_each_Nr, "times", n_trials);
-  plot(Nrs, speedups_for_each_Nr, "speedups", n_trials);
-  plot(Nrs, scalabilities_for_each_Nr, "scalabilities", n_trials);
-  plot(Nrs, efficiencies_for_each_Nr, "efficiencies", n_trials);
+  plot(Nrs, times_for_each_Nr, "times", n_trials, false);
+  plot(Nrs, speedups_for_each_Nr, "speedups", n_trials, false);
+  plot(Nrs, scalabilities_for_each_Nr, "scalabilities", n_trials, false);
+  plot(Nrs, efficiencies_for_each_Nr, "efficiencies", n_trials, false);
+
+  plot(Nrs, times_for_each_Nr_ff, "times", n_trials, true);
+  plot(Nrs, speedups_for_each_Nr_ff, "speedups", n_trials, true);
+  plot(Nrs, scalabilities_for_each_Nr_ff, "scalabilities", n_trials, true);
+  plot(Nrs, efficiencies_for_each_Nr_ff, "efficiencies", n_trials, true);
 
   cout << "\nftt!\n";
   return 0;
