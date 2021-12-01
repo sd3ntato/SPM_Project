@@ -82,3 +82,13 @@ tuple<float *, float *, float *, float *, float *, float *, float *> prepare_vec
   y = zeros(4, y);
   return make_tuple(x, x_rec, x_in, x_old, k, z, y);
 }
+
+float compute_error(float *d, float *y, int Ny)
+{
+  float s = 0;
+  for (int i = 0; i < Ny; i++)
+  {
+    s += pow(d[i] - y[i], 2);
+  }
+  return s;
+}
