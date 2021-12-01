@@ -81,21 +81,26 @@ int main()
     float *z = zeros(1, Nr + 1).m[0];
     float *y = zeros(1, 4).m[0];
 
+    times_for_each_Nr[i] = compute_average_times("mdf", Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
+    /*
+
     double t0 = compute_sequential_time(Nr, n_samples, n_trials, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
     
     //without fastflow
-    times_for_each_Nr[i] = compute_average_times(false, Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
+    times_for_each_Nr[i] = compute_average_times("none", Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
     speedups_for_each_Nr[i] = compute_speedups(times_for_each_Nr[i], t0);
     scalabilities_for_each_Nr[i] = compute_scalabilities(times_for_each_Nr[i]);
     efficiencies_for_each_Nr[i] = compute_effieciencies(speedups_for_each_Nr[i]);
 
-    // with fastflow
-    times_for_each_Nr_ff[i] = compute_average_times(true, Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
+    // with fastflow parallel_for
+    times_for_each_Nr_ff[i] = compute_average_times("parfor", Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
     speedups_for_each_Nr_ff[i] = compute_speedups(times_for_each_Nr_ff[i], t0);
     scalabilities_for_each_Nr_ff[i] = compute_scalabilities(times_for_each_Nr_ff[i]);
     efficiencies_for_each_Nr_ff[i] = compute_effieciencies(speedups_for_each_Nr_ff[i]);
+    */
   }
 
+  /*
   plot(Nrs, times_for_each_Nr, "times", n_trials, false);
   plot(Nrs, speedups_for_each_Nr, "speedups", n_trials, false);
   plot(Nrs, scalabilities_for_each_Nr, "scalabilities", n_trials, false);
@@ -105,6 +110,7 @@ int main()
   plot(Nrs, speedups_for_each_Nr_ff, "speedups", n_trials, true);
   plot(Nrs, scalabilities_for_each_Nr_ff, "scalabilities", n_trials, true);
   plot(Nrs, efficiencies_for_each_Nr_ff, "efficiencies", n_trials, true);
+  */
 
   cout << "\nftt!\n";
   return 0;
