@@ -356,8 +356,7 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
 
   // x_rec = W | x_old
   {
-    ff::ParallelFor p(par_degree);
-    ff::ParallelFor *ptr_p = &p;
+    ff::ParallelFor *ptr_p = new ff::ParallelFor(par_degree);
     Param.clear();
     const ff::param_info _1 = {(uintptr_t)&c0, ff::INPUT};
     const ff::param_info _2 = {(uintptr_t)&Nr, ff::INPUT};
@@ -382,8 +381,7 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
 
   // x_in = Win | u
   {
-    ff::ParallelFor p(par_degree);
-    ff::ParallelFor *ptr_p = &p;
+    ff::ParallelFor *ptr_p = new ff::ParallelFor(par_degree);
     Param.clear();
     const ff::param_info _1 = {(uintptr_t)&c0, ff::INPUT};
     const ff::param_info _2 = {(uintptr_t)&Nr, ff::INPUT};
@@ -406,8 +404,7 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
 
   // compute tanh(sum...)
   {
-    ff::ParallelFor p(par_degree);
-    ff::ParallelFor *ptr_p = &p;
+    ff::ParallelFor *ptr_p = new ff::ParallelFor(par_degree);
     Param.clear();
     const ff::param_info _1 = {(uintptr_t)&Nr, ff::INPUT};
     const ff::param_info _2 = {(uintptr_t)&Nu, ff::INPUT};
@@ -430,8 +427,7 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
 
   // z = P|x
   {
-    ff::ParallelFor p(par_degree);
-    ff::ParallelFor *ptr_p = &p;
+    ff::ParallelFor *ptr_p = new ff::ParallelFor(par_degree);
     Param.clear();
     const ff::param_info _1 = {(uintptr_t)&c0, ff::INPUT};
     const ff::param_info _2 = {(uintptr_t)&Nr, ff::INPUT};
@@ -470,8 +466,7 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
 
   //y = Wout|x
   {
-    ff::ParallelFor p(par_degree);
-    ff::ParallelFor *ptr_p = &p;
+    ff::ParallelFor *ptr_p = new ff::ParallelFor(par_degree);
     Param.clear();
     const ff::param_info _1 = {(uintptr_t)&c0, ff::INPUT};
     const ff::param_info _2 = {(uintptr_t)&Ny, ff::INPUT};
@@ -494,8 +489,7 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
 
   // k = z/k_den
   {
-    ff::ParallelFor p(par_degree);
-    ff::ParallelFor *ptr_p = &p;
+    ff::ParallelFor *ptr_p = new ff::ParallelFor(par_degree);
     Param.clear();
     const ff::param_info _1 = {(uintptr_t)&k, ff::OUTPUT};
     const ff::param_info _2 = {(uintptr_t)&z, ff::INPUT};
@@ -512,8 +506,7 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
 
   // Wout = ...
   {
-    ff::ParallelFor p(par_degree);
-    ff::ParallelFor *ptr_p = &p;
+    ff::ParallelFor *ptr_p = new ff::ParallelFor(par_degree);
     Param.clear();
     const ff::param_info _1 = {(uintptr_t)&Wout, ff::OUTPUT};
     const ff::param_info _2 = {(uintptr_t)&d, ff::INPUT};
@@ -537,9 +530,8 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
 
   // P = ...
   {
+    ff::ParallelFor *ptr_p = new ff::ParallelFor(par_degree);
     Param.clear();
-    ff::ParallelFor p(par_degree);
-    ff::ParallelFor *ptr_p = &p;
     const ff::param_info _1 = {(uintptr_t)&P, ff::OUTPUT};
     const ff::param_info _2 = {(uintptr_t)&Pold, ff::INPUT};
     const ff::param_info _3 = {(uintptr_t)&k, ff::INPUT};
