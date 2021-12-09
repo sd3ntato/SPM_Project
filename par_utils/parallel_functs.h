@@ -146,15 +146,11 @@ vector<double> par_train(int par_degree, int c_line_size, int n_samples, Matrix_
 
 void parallel_matrix_dot_vector_ff(int row_start, int row_stop, int col_start, int col_stop, ff::ParallelFor *p, float **M, float *v, float *r)
 {
-  cout << "starting dot matrix vector" << endl
-       << flush;
   auto dot_f = [&](const int i)
   {
     r[i] = dot(col_start, col_stop, M[i], v);
   };
   p->parallel_for(row_start, row_stop, dot_f);
-  cout << "dot matrix vector finished" << row_start << " " << row_stop << " " << col_start << " " << col_stop << endl
-       << flush;
 }
 
 vector<double> par_train_ff(int par_degree, int c_line_size, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
@@ -263,15 +259,11 @@ void comp_state_ff(int Nr, int Nu, float *x, float *x_rec, float *x_in, float **
 
 void divide_by_const_ff(float *k, float *z, float k_den, int Nr, ff::ParallelFor *p)
 {
-  cout << "----computation of k started" << endl
-       << flush;
   auto divide_by_const_f = [&](const int i)
   {
     k[i] = (z[i] / k_den);
   };
   p->parallel_for(0, Nr + 1, divide_by_const_f);
-  cout << "----computation of k finished" << endl
-       << flush;
 }
 
 void dot_in_place(int start, int stop, float *v1, float *v2, float *x)
@@ -295,14 +287,10 @@ void compute_new_Wout_ff(float **Wout, float *d, float *y, float *k, float **Wol
     }
   };
   p->parallel_for(0, Ny, compute_new_wout_f);
-  cout << "computation of Wout finished" << endl
-       << flush;
 }
 
 void compute_new_P_ff(float **P, float **Pold, float *k, float *z, float l, int Nr, ff::ParallelFor *p)
 {
-  cout << "-----computation of P started" << endl
-       << flush;
   auto compute_new_p_f = [&](const int i)
   {
     for (int j = 0; j < Nr + 1; j++)
@@ -312,8 +300,6 @@ void compute_new_P_ff(float **P, float **Pold, float *k, float *z, float l, int 
     }
   };
   p->parallel_for(0, Nr + 1, compute_new_p_f);
-  cout << "-----computation of P finished" << endl
-       << flush;
 }
 
 #define mdf_submit_matrix_dot_vector(mdf, Param, ptr_p, row_start, row_stop, col_start, col_stop, M, v, r)        \
@@ -437,11 +423,6 @@ void compute_new_P_ff(float **P, float **Pold, float *k, float *z, float l, int 
 // istanzia DAG di una iterazione, sottopone le task. il risultato dell' operazione lo deposita in appsito puntatore
 void taskGen(Parameters<ff::ff_mdf> *const Par)
 {
-  cout << endl
-       << endl
-       << endl
-       << "generating task" << endl
-       << flush;
   ff::ff_mdf *mdf = Par->mdf;
 
   int Nr = Par->Nr;
@@ -507,9 +488,6 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
   // P = ...
   ff::ParallelFor *ptr_p8 = new ff::ParallelFor(par_degree);
   mdf_submit_compute_new_p(P, Pold, k, z, l, Nr, ptr_p8);
-
-  //cout << "takgen finished" << endl
-  //     << flush;
 }
 
 vector<double> par_train_mdf(int par_degree, int c_line_size, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
@@ -564,22 +542,12 @@ vector<double> par_train_mdf(int par_degree, int c_line_size, int n_samples, Mat
     Par.d = dataset.m[cnt + 1];
 
     // make the mdf run, it will use the given input to modify its data during execution
-    cout << " risutato di run and wait end" << mdf.run_and_wait_end() << " " << endl
-         << flush; // computes an iteration
+    mdf.run_and_wait_end(); // computes an iteration
     // mdf executes and deposits values into the float*s, so
     // after execution, e.g. y contains the output of the
     // network at the end of the iteration
-    cout << "iteration finished" << endl
-         << flush;
 
     s = compute_error(Par.d, Par.y, Ny);
-    cout << s << endl
-         << endl
-         << endl
-         << endl
-         << endl
-         << endl
-         << flush;
     error_norms.push_back(sqrt(s));
 
     cnt++;
