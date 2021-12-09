@@ -316,6 +316,124 @@ void compute_new_P_ff(float **P, float **Pold, float *k, float *z, float l, int 
        << flush;
 }
 
+#define mdf_submit_matrix_dot_vector(mdf, Param, ptr_p, row_start, row_stop, col_start, col_stop, M, v, r)        \
+  {                                                                                                               \
+    Param.clear();                                                                                                \
+    const ff::param_info _1 = {(uintptr_t)&row_start, ff::INPUT};                                                 \
+    const ff::param_info _2 = {(uintptr_t)&row_stop, ff::INPUT};                                                  \
+    const ff::param_info _3 = {(uintptr_t)&col_start, ff::INPUT};                                                 \
+    const ff::param_info _4 = {(uintptr_t)&col_stop, ff::INPUT};                                                  \
+    const ff::param_info _5 = {(uintptr_t)&ptr_p, ff::INPUT};                                                     \
+    const ff::param_info _6 = {(uintptr_t)&M, ff::INPUT};                                                         \
+    const ff::param_info _7 = {(uintptr_t)&v, ff::INPUT};                                                         \
+    const ff::param_info _8 = {(uintptr_t)&r, ff::OUTPUT};                                                        \
+    Param.push_back(_1);                                                                                          \
+    Param.push_back(_2);                                                                                          \
+    Param.push_back(_3);                                                                                          \
+    Param.push_back(_4);                                                                                          \
+    Param.push_back(_5);                                                                                          \
+    Param.push_back(_6);                                                                                          \
+    Param.push_back(_7);                                                                                          \
+    Param.push_back(_8);                                                                                          \
+    mdf->AddTask(Param, parallel_matrix_dot_vector_ff, row_start, row_stop, col_start, col_stop, ptr_p, M, v, r); \
+  }
+
+#define mdf_submit_compute_state_state_task(mdf, Param, ptr_p, Nr, Nu, x, x_rec, x_in, Win, x_old) \
+  {                                                                                                \
+    Param.clear();                                                                                 \
+    const ff::param_info _1 = {(uintptr_t)&Nr, ff::INPUT};                                         \
+    const ff::param_info _2 = {(uintptr_t)&Nu, ff::INPUT};                                         \
+    const ff::param_info _3 = {(uintptr_t)&x, ff::OUTPUT};                                         \
+    const ff::param_info _4 = {(uintptr_t)&x_rec, ff::INPUT};                                      \
+    const ff::param_info _5 = {(uintptr_t)&x_in, ff::INPUT};                                       \
+    const ff::param_info _6 = {(uintptr_t)&Win, ff::INPUT};                                        \
+    const ff::param_info _7 = {(uintptr_t)&x_old, ff::OUTPUT};                                     \
+    const ff::param_info _8 = {(uintptr_t)&ptr_p, ff::INPUT};                                      \
+    Param.push_back(_1);                                                                           \
+    Param.push_back(_2);                                                                           \
+    Param.push_back(_3);                                                                           \
+    Param.push_back(_4);                                                                           \
+    Param.push_back(_5);                                                                           \
+    Param.push_back(_6);                                                                           \
+    Param.push_back(_7);                                                                           \
+    Param.push_back(_8);                                                                           \
+    mdf->AddTask(Param, comp_state_ff, Nr, Nu, x, x_rec, x_in, Win, x_old, ptr_p);                 \
+  }
+
+#define mdf_submit_vector_dot_vector_task(mdf, Param, start, stop, v1, v2, r) \
+  {                                                                           \
+    Param.clear();                                                            \
+    const ff::param_info _1 = {(uintptr_t)&start, ff::INPUT};                 \
+    const ff::param_info _2 = {(uintptr_t)&stop, ff::INPUT};                  \
+    const ff::param_info _3 = {(uintptr_t)&v1, ff::INPUT};                    \
+    const ff::param_info _4 = {(uintptr_t)&v2, ff::INPUT};                    \
+    const ff::param_info _5 = {(uintptr_t)&r, ff::OUTPUT};                    \
+    Param.push_back(_1);                                                      \
+    Param.push_back(_2);                                                      \
+    Param.push_back(_3);                                                      \
+    Param.push_back(_4);                                                      \
+    Param.push_back(_5);                                                      \
+    mdf->AddTask(Param, dot_in_place, start, stop, v1, v2, &r);               \
+  }
+
+#define mdf_submit_divide_by_const(mdf, Param, ptr_p, k, z, k_den, stop) \
+  {                                                                      \
+    Param.clear();                                                       \
+    const ff::param_info _1 = {(uintptr_t)&k, ff::OUTPUT};               \
+    const ff::param_info _2 = {(uintptr_t)&z, ff::INPUT};                \
+    const ff::param_info _3 = {(uintptr_t)&k_den, ff::INPUT};            \
+    const ff::param_info _4 = {(uintptr_t)&stop, ff::INPUT};             \
+    const ff::param_info _5 = {(uintptr_t)&ptr_p, ff::INPUT};            \
+    Param.push_back(_1);                                                 \
+    Param.push_back(_2);                                                 \
+    Param.push_back(_3);                                                 \
+    Param.push_back(_4);                                                 \
+    Param.push_back(_5);                                                 \
+    mdf->AddTask(Param, divide_by_const_ff, k, z, k_den, stop, ptr_p);   \
+  }
+
+#define mdf_subumit_compute_new_wout(Wout, d, y, k, Wold, Nr, Ny, ptr_p)          \
+  {                                                                               \
+    Param.clear();                                                                \
+    const ff::param_info _1 = {(uintptr_t)&Wout, ff::OUTPUT};                     \
+    const ff::param_info _2 = {(uintptr_t)&d, ff::INPUT};                         \
+    const ff::param_info _3 = {(uintptr_t)&y, ff::INPUT};                         \
+    const ff::param_info _4 = {(uintptr_t)&k, ff::INPUT};                         \
+    const ff::param_info _5 = {(uintptr_t)&Wold, ff::OUTPUT};                     \
+    const ff::param_info _6 = {(uintptr_t)&Nr, ff::INPUT};                        \
+    const ff::param_info _7 = {(uintptr_t)&Ny, ff::INPUT};                        \
+    const ff::param_info _8 = {(uintptr_t)&ptr_p, ff::INPUT};                     \
+    Param.push_back(_1);                                                          \
+    Param.push_back(_2);                                                          \
+    Param.push_back(_3);                                                          \
+    Param.push_back(_4);                                                          \
+    Param.push_back(_5);                                                          \
+    Param.push_back(_6);                                                          \
+    Param.push_back(_7);                                                          \
+    Param.push_back(_8);                                                          \
+    mdf->AddTask(Param, compute_new_Wout_ff, Wout, d, y, k, Wold, Nr, Ny, ptr_p); \
+  }
+
+#define mdf_submit_compute_new_p(P, Pold, k, z, l, Nr, ptr_p)           \
+  {                                                                     \
+    Param.clear();                                                      \
+    const ff::param_info _1 = {(uintptr_t)&P, ff::OUTPUT};              \
+    const ff::param_info _2 = {(uintptr_t)&Pold, ff::INPUT};            \
+    const ff::param_info _3 = {(uintptr_t)&k, ff::INPUT};               \
+    const ff::param_info _4 = {(uintptr_t)&z, ff::INPUT};               \
+    const ff::param_info _5 = {(uintptr_t)&l, ff::INPUT};               \
+    const ff::param_info _6 = {(uintptr_t)&Nr, ff::INPUT};              \
+    const ff::param_info _7 = {(uintptr_t)&ptr_p, ff::INPUT};           \
+    Param.push_back(_1);                                                \
+    Param.push_back(_2);                                                \
+    Param.push_back(_3);                                                \
+    Param.push_back(_4);                                                \
+    Param.push_back(_5);                                                \
+    Param.push_back(_6);                                                \
+    Param.push_back(_7);                                                \
+    mdf->AddTask(Param, compute_new_P_ff, P, Pold, k, z, l, Nr, ptr_p); \
+  }
+
 // istanzia DAG di una iterazione, sottopone le task. il risultato dell' operazione lo deposita in appsito puntatore
 void taskGen(Parameters<ff::ff_mdf> *const Par)
 {
@@ -355,201 +473,43 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
   const int c0 = 0;
 
   // x_rec = W | x_old
-  {
-    ff::ParallelFor *ptr_p = new ff::ParallelFor(par_degree);
-    Param.clear();
-    const ff::param_info _1 = {(uintptr_t)&c0, ff::INPUT};
-    const ff::param_info _2 = {(uintptr_t)&Nr, ff::INPUT};
-    const ff::param_info _3 = {(uintptr_t)&c0, ff::INPUT};
-    const ff::param_info _4 = {(uintptr_t)&Nr, ff::INPUT};
-    const ff::param_info _5 = {(uintptr_t)&ptr_p, ff::INPUT};
-    const ff::param_info _6 = {(uintptr_t)&W, ff::INPUT};
-    const ff::param_info _7 = {(uintptr_t)&x_old, ff::INPUT};
-    const ff::param_info _8 = {(uintptr_t)&x_rec, ff::OUTPUT};
-    Param.push_back(_1);
-    Param.push_back(_2);
-    Param.push_back(_3);
-    Param.push_back(_4);
-    Param.push_back(_5);
-    Param.push_back(_6);
-    Param.push_back(_7);
-    Param.push_back(_8);
-    mdf->AddTask(Param, parallel_matrix_dot_vector_ff, 0, Nr, 0, Nr, ptr_p, W, x_old, x_rec);
-  }
-  cout << "generated W xold" << endl
-       << flush;
+  ff::ParallelFor *ptr_p1 = new ff::ParallelFor(par_degree);
+  mdf_submit_matrix_dot_vector(mdf, Param, ptr_p1, c0, Nr, c0, Nr, W, x_old, x_rec);
+  //cout << "generated W xold" << endl << flush;
 
   // x_in = Win | u
-  {
-    ff::ParallelFor *ptr_p = new ff::ParallelFor(par_degree);
-    Param.clear();
-    const ff::param_info _1 = {(uintptr_t)&c0, ff::INPUT};
-    const ff::param_info _2 = {(uintptr_t)&Nr, ff::INPUT};
-    const ff::param_info _3 = {(uintptr_t)&c0, ff::INPUT};
-    const ff::param_info _4 = {(uintptr_t)&Nu, ff::INPUT};
-    const ff::param_info _5 = {(uintptr_t)&ptr_p, ff::INPUT};
-    const ff::param_info _6 = {(uintptr_t)&Win, ff::INPUT};
-    const ff::param_info _7 = {(uintptr_t)&u, ff::INPUT};
-    const ff::param_info _8 = {(uintptr_t)&x_in, ff::OUTPUT};
-    Param.push_back(_1);
-    Param.push_back(_2);
-    Param.push_back(_3);
-    Param.push_back(_4);
-    Param.push_back(_5);
-    Param.push_back(_6);
-    Param.push_back(_7);
-    Param.push_back(_8);
-    mdf->AddTask(Param, parallel_matrix_dot_vector_ff, 0, Nr, 0, Nu, ptr_p, Win, u, x_in);
-  }
+  ff::ParallelFor *ptr_p2 = new ff::ParallelFor(par_degree);
+  mdf_submit_matrix_dot_vector(mdf, Param, ptr_p2, c0, Nr, c0, Nu, Win, u, x_in);
 
   // compute tanh(sum...)
-  {
-    ff::ParallelFor *ptr_p = new ff::ParallelFor(par_degree);
-    Param.clear();
-    const ff::param_info _1 = {(uintptr_t)&Nr, ff::INPUT};
-    const ff::param_info _2 = {(uintptr_t)&Nu, ff::INPUT};
-    const ff::param_info _3 = {(uintptr_t)&x, ff::OUTPUT};
-    const ff::param_info _4 = {(uintptr_t)&x_rec, ff::INPUT};
-    const ff::param_info _5 = {(uintptr_t)&x_in, ff::INPUT};
-    const ff::param_info _6 = {(uintptr_t)&Win, ff::INPUT};
-    const ff::param_info _7 = {(uintptr_t)&x_old, ff::OUTPUT};
-    const ff::param_info _8 = {(uintptr_t)&ptr_p, ff::INPUT};
-    Param.push_back(_1);
-    Param.push_back(_2);
-    Param.push_back(_3);
-    Param.push_back(_4);
-    Param.push_back(_5);
-    Param.push_back(_6);
-    Param.push_back(_7);
-    Param.push_back(_8);
-    mdf->AddTask(Param, comp_state_ff, Nr, Nu, x, x_rec, x_in, Win, x_old, ptr_p);
-  }
+  ff::ParallelFor *ptr_p3 = new ff::ParallelFor(par_degree);
+  mdf_submit_compute_state_state_task(mdf, Param, ptr_p3, Nr, Nu, x, x_rec, x_in, Win, x_old);
 
   // z = P|x
-  {
-    ff::ParallelFor *ptr_p = new ff::ParallelFor(par_degree);
-    Param.clear();
-    const ff::param_info _1 = {(uintptr_t)&c0, ff::INPUT};
-    const ff::param_info _2 = {(uintptr_t)&Nr, ff::INPUT};
-    const ff::param_info _3 = {(uintptr_t)&c0, ff::INPUT};
-    const ff::param_info _4 = {(uintptr_t)&Nr, ff::INPUT};
-    const ff::param_info _5 = {(uintptr_t)&ptr_p, ff::INPUT};
-    const ff::param_info _6 = {(uintptr_t)&P, ff::INPUT};
-    const ff::param_info _7 = {(uintptr_t)&x, ff::INPUT};
-    const ff::param_info _8 = {(uintptr_t)&z, ff::OUTPUT};
-    Param.push_back(_1);
-    Param.push_back(_2);
-    Param.push_back(_3);
-    Param.push_back(_4);
-    Param.push_back(_5);
-    Param.push_back(_6);
-    Param.push_back(_7);
-    Param.push_back(_8);
-    mdf->AddTask(Param, parallel_matrix_dot_vector_ff, 0, Nr + 1, 0, Nr + 1, ptr_p, P, x, z);
-  }
+  ff::ParallelFor *ptr_p4 = new ff::ParallelFor(par_degree);
+  mdf_submit_matrix_dot_vector(mdf, Param, ptr_p4, c0, Nr, c0, Nr, P, x, z);
 
   // k_den = x.T | z
-  {
-    Param.clear();
-    const ff::param_info _1 = {(uintptr_t)&c0, ff::INPUT};
-    const ff::param_info _2 = {(uintptr_t)&Nr, ff::INPUT};
-    const ff::param_info _3 = {(uintptr_t)&x, ff::INPUT};
-    const ff::param_info _4 = {(uintptr_t)&z, ff::INPUT};
-    const ff::param_info _5 = {(uintptr_t)&k_den, ff::OUTPUT};
-    Param.push_back(_1);
-    Param.push_back(_2);
-    Param.push_back(_3);
-    Param.push_back(_4);
-    Param.push_back(_5);
-    mdf->AddTask(Param, dot_in_place, 0, Nr + 1, x, z, &k_den);
-  }
+  mdf_submit_vector_dot_vector_task(mdf, Param, c0, Nr + 1, x, z, k_den);
 
   //y = Wout|x
-  {
-    ff::ParallelFor *ptr_p = new ff::ParallelFor(par_degree);
-    Param.clear();
-    const ff::param_info _1 = {(uintptr_t)&c0, ff::INPUT};
-    const ff::param_info _2 = {(uintptr_t)&Ny, ff::INPUT};
-    const ff::param_info _3 = {(uintptr_t)&c0, ff::INPUT};
-    const ff::param_info _4 = {(uintptr_t)&Nu, ff::INPUT};
-    const ff::param_info _5 = {(uintptr_t)&ptr_p, ff::INPUT};
-    const ff::param_info _6 = {(uintptr_t)&Wout, ff::INPUT};
-    const ff::param_info _7 = {(uintptr_t)&x, ff::INPUT};
-    const ff::param_info _8 = {(uintptr_t)&y, ff::OUTPUT};
-    Param.push_back(_1);
-    Param.push_back(_2);
-    Param.push_back(_3);
-    Param.push_back(_4);
-    Param.push_back(_5);
-    Param.push_back(_6);
-    Param.push_back(_7);
-    Param.push_back(_8);
-    mdf->AddTask(Param, parallel_matrix_dot_vector_ff, 0, Ny, 0, Nr + 1, ptr_p, Wout, x, y);
-  }
+  ff::ParallelFor *ptr_p5 = new ff::ParallelFor(par_degree);
+  mdf_submit_matrix_dot_vector(mdf, Param, ptr_p5, c0, Ny, c0, Nr + 1, Wout, x, y);
 
   // k = z/k_den
-  {
-    ff::ParallelFor *ptr_p = new ff::ParallelFor(par_degree);
-    Param.clear();
-    const ff::param_info _1 = {(uintptr_t)&k, ff::OUTPUT};
-    const ff::param_info _2 = {(uintptr_t)&z, ff::INPUT};
-    const ff::param_info _3 = {(uintptr_t)&k_den, ff::INPUT};
-    const ff::param_info _4 = {(uintptr_t)&Nr, ff::INPUT};
-    const ff::param_info _5 = {(uintptr_t)&ptr_p, ff::INPUT};
-    Param.push_back(_1);
-    Param.push_back(_2);
-    Param.push_back(_3);
-    Param.push_back(_4);
-    Param.push_back(_5);
-    mdf->AddTask(Param, divide_by_const_ff, k, z, k_den, Nr, ptr_p);
-  }
+  ff::ParallelFor *ptr_p6 = new ff::ParallelFor(par_degree);
+  mdf_submit_divide_by_const(mdf, Param, ptr_p6, k, z, k_den, Nr);
 
   // Wout = ...
-  {
-    ff::ParallelFor *ptr_p = new ff::ParallelFor(par_degree);
-    Param.clear();
-    const ff::param_info _1 = {(uintptr_t)&Wout, ff::OUTPUT};
-    const ff::param_info _2 = {(uintptr_t)&d, ff::INPUT};
-    const ff::param_info _3 = {(uintptr_t)&y, ff::INPUT};
-    const ff::param_info _4 = {(uintptr_t)&k, ff::INPUT};
-    const ff::param_info _5 = {(uintptr_t)&Wold, ff::OUTPUT};
-    const ff::param_info _6 = {(uintptr_t)&Nr, ff::INPUT};
-    const ff::param_info _7 = {(uintptr_t)&Ny, ff::INPUT};
-    const ff::param_info _8 = {(uintptr_t)&ptr_p, ff::INPUT};
-
-    Param.push_back(_1);
-    Param.push_back(_2);
-    Param.push_back(_3);
-    Param.push_back(_4);
-    Param.push_back(_5);
-    Param.push_back(_6);
-    Param.push_back(_7);
-    Param.push_back(_8);
-    mdf->AddTask(Param, compute_new_Wout_ff, Wout, d, y, k, Wold, Nr, Ny, ptr_p);
-  }
+  ff::ParallelFor *ptr_p7 = new ff::ParallelFor(par_degree);
+  mdf_subumit_compute_new_wout(Wout, d, y, k, Wold, Nr, Ny, ptr_p7);
 
   // P = ...
-  {
-    ff::ParallelFor *ptr_p = new ff::ParallelFor(par_degree);
-    Param.clear();
-    const ff::param_info _1 = {(uintptr_t)&P, ff::OUTPUT};
-    const ff::param_info _2 = {(uintptr_t)&Pold, ff::INPUT};
-    const ff::param_info _3 = {(uintptr_t)&k, ff::INPUT};
-    const ff::param_info _4 = {(uintptr_t)&z, ff::INPUT};
-    const ff::param_info _5 = {(uintptr_t)&l, ff::INPUT};
-    const ff::param_info _6 = {(uintptr_t)&Nr, ff::INPUT};
-    const ff::param_info _7 = {(uintptr_t)&ptr_p, ff::INPUT};
-    Param.push_back(_1);
-    Param.push_back(_2);
-    Param.push_back(_3);
-    Param.push_back(_4);
-    Param.push_back(_5);
-    Param.push_back(_6);
-    Param.push_back(_7);
-    mdf->AddTask(Param, compute_new_P_ff, P, Pold, k, z, l, Nr, ptr_p);
-  }
-  cout << "takgen finished" << endl
-       << flush;
+  ff::ParallelFor *ptr_p8 = new ff::ParallelFor(par_degree);
+  mdf_submit_compute_new_p(P, Pold, k, z, l, Nr, ptr_p8);
+
+  //cout << "takgen finished" << endl
+  //     << flush;
 }
 
 vector<double> par_train_mdf(int par_degree, int c_line_size, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
