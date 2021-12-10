@@ -8,12 +8,12 @@
 #include <condition_variable>
 using namespace std;
 
-class Task
+struct Task
 {
 
 public:
   bool terminated;
-  std::mutex *mutex; // this is not cpyable, set it as a pointer and instantiate it in constructor, see difference struct and class
+  std::mutex *mutex; // this is not cpyable, set it as a pointer and instantiate it in constructor, see difference struct and struct
   std::condition_variable *condition;
   Task()
   {
@@ -24,7 +24,7 @@ public:
   virtual void execute(){};
 };
 
-class Dot_task : public Task
+struct Dot_task : public Task
 {
 private:
   int start;
@@ -51,7 +51,7 @@ public:
   }
 };
 
-class Comp_state_task : public Task
+struct Comp_state_task : public Task
 {
 private:
   int start, stop, Nu;
@@ -80,7 +80,7 @@ public:
   }
 };
 
-class Divide_by_const : public Task
+struct Divide_by_const : public Task
 {
 private:
   int start, stop;
@@ -105,7 +105,7 @@ public:
   }
 };
 
-class Compute_new_Wout : public Task
+struct Compute_new_Wout : public Task
 {
 private:
   int start, stop, i0, ii;
@@ -138,7 +138,7 @@ public:
   }
 };
 
-class Compute_new_P : public Task
+struct Compute_new_P : public Task
 {
 private:
   int start, stop, i0, ii;
@@ -171,7 +171,7 @@ public:
   }
 };
 
-class Multiple_Dot_task : public Task
+struct Multiple_Dot_task : public Task
 {
 private:
   int start;
