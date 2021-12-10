@@ -8,7 +8,7 @@
 using namespace std;
 
 template <typename T>
-class queue
+class prot_queue
 {
 private:
   std::mutex d_mutex;
@@ -16,7 +16,7 @@ private:
   std::deque<T> d_queue;
 
 public:
-  queue() = default;
+  prot_queue() = default;
   void push(T const &value);
   T pop();
   bool empty();
@@ -24,7 +24,7 @@ public:
 };
 
 template <typename T>
-inline void queue<T>::push(T const &value)
+inline void prot_queue<T>::push(T const &value)
 {
   {
     unique_lock<std::mutex> lock(this->d_mutex);
@@ -34,19 +34,22 @@ inline void queue<T>::push(T const &value)
 }
 
 template <typename T>
-inline T queue<T>::pop()
+inline T prot_queue<T>::pop()
 {
-  std::unique_lock<std::mutex> lock(this->d_mutex);
-  this->d_condition.wait(lock, [=]
-                         { return !this->d_queue.empty(); });
-  T rc = this->d_queue.back();
-  this->d_queue.pop_back();
+  T rc;
+  {
+    std::unique_lock<std::mutex> lock(this->d_mutex);
+    this->d_condition.wait(lock, [=]
+                           { return !this->d_queue.empty(); });
+    rc = this->d_queue.back();
+    this->d_queue.pop_back();
+  }
   d_condition.notify_all();
   return rc;
 }
 
 template <typename T>
-inline bool queue<T>::empty()
+inline bool prot_queue<T>::empty()
 {
   unique_lock<std::mutex> lock(this->d_mutex);
   return d_queue.empty();
@@ -54,7 +57,7 @@ inline bool queue<T>::empty()
 }
 
 template <typename T>
-inline void queue<T>::wait_empty()
+inline void prot_queue<T>::wait_empty()
 {
   unique_lock<std::mutex> lock(d_mutex);
   d_condition.wait(lock, [=]

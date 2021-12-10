@@ -15,7 +15,7 @@ using namespace std;
 class Pool
 {
 private:
-  queue<Task *> *taskqs; // array of queues of tasks
+  prot_queue<Task *> *taskqs; // array of queues of tasks
   bool *stops;
   thread *threads; // array of workers
   int last_submitted;

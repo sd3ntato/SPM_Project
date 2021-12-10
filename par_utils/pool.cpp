@@ -19,7 +19,7 @@
 
 using namespace std;
 
-void worker_fun(queue<Task *> &taskq, bool &stop)
+void worker_fun(prot_queue<Task *> &taskq, bool &stop)
 {
   Task *task;
   while (true)
@@ -38,7 +38,7 @@ void worker_fun(queue<Task *> &taskq, bool &stop)
 Pool::Pool(int n)
 {
   n_workers = n;
-  taskqs = new queue<Task *>[n];
+  taskqs = new prot_queue<Task *>[n];
   stops = new bool[n];
   threads = new thread[n];
   last_submitted = 0;
