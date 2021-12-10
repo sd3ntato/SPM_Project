@@ -4,11 +4,23 @@
 #endif
 #include "math.h"
 #include <iostream>
+#include <mutex>
+#include <condition_variable>
 using namespace std;
 
 class Task
 {
+
 public:
+  bool terminated;
+  std::mutex *mutex; // this is not cpyable, set it as a pointer and instantiate it in constructor, see difference struct and class
+  std::condition_variable *condition;
+  Task()
+  {
+    mutex = new std::mutex;
+    condition = new std::condition_variable;
+    terminated = false;
+  }
   virtual void execute(){};
 };
 
