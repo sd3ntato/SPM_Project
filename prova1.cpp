@@ -120,47 +120,55 @@ struct Emitter : ff_node_t<Task>
   }
 };
 
-struct ff_pool
-{
-  prot_queue<Task *> *q;
-  ff_Farm<Task>* farm;
-
-  ff_pool(prot_queue<Task *> *q, int nworkers)
-  {
-    
-  }
-};
-
 //void deamon_funct(prot_queue<Task *> *q, int nworkers)
 //auto th = thread(deamon_funct,q,nworkers);
 
-int
-main(int argc, char *argv[])
+ff_Farm<Task> *build_farm(prot_queue<Task *> *q, int nworkers)
+{
+  ff_Farm<Task> *farm = new ff_Farm<Task>([nworkers]()
+                                          {
+                                            std::vector<std::unique_ptr<ff_node>> Workers;
+                                            for (int i = 0; i < nworkers; ++i)
+                                              Workers.push_back(std::unique_ptr<ff_node_t<Task>>(new Worker));
+                                            return Workers;
+                                          }());
+
+  Emitter* E = new Emitter(q);
+  farm->add_emitter(*E);
+  farm->remove_collector();
+
+  if (farm->run_then_freeze() < 0)
+    error("running farm");
+  
+  return farm;
+}
+
+
+struct ff_pool
+{
+  ff_Farm<Task> *farm;
+
+  ff_pool(prot_queue<Task *> *q, int nworkers)
+  {
+    farm = build_farm(q,nworkers);
+  }
+};
+
+int main(int argc, char *argv[])
 {
   int nworkers = 5;
   prot_queue<Task *> *q = new prot_queue<Task *>;
 
-  ff_Farm<Task> farm([nworkers]()
-                     {
-                       std::vector<std::unique_ptr<ff_node>> Workers;
-                       for (int i = 0; i < nworkers; ++i)
-                         Workers.push_back(std::unique_ptr<ff_node_t<Task>>(new Worker));
-                       return Workers;
-                     }());
-
-  Emitter E(q);
-  farm.add_emitter(E);
-  farm.remove_collector();
-
-  if (farm.run_then_freeze() < 0)
-    error("running farm");
+  ff_pool p(q,nworkers);
 
   q->push(new Task());
   q->push(new Task());
   q->push(new Task());
   q->push(nullptr);
 
-  farm.wait_freezing();
+  p.farm->wait_freezing();
 
   return 0;
 }
+
+// g++ prova1.cpp  -o prova1 -I ./par_utils/ -I ./linear_algebra/ -I ./eigen/ -I ./spectra/include/ -I ./fastflow/ -pthread
