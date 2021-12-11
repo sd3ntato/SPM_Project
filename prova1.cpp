@@ -133,16 +133,15 @@ ff_Farm<Task> *build_farm(prot_queue<Task *> *q, int nworkers)
                                             return Workers;
                                           }());
 
-  Emitter* E = new Emitter(q);
+  Emitter *E = new Emitter(q);
   farm->add_emitter(*E);
   farm->remove_collector();
 
   if (farm->run_then_freeze() < 0)
     error("running farm");
-  
+
   return farm;
 }
-
 
 struct ff_pool
 {
@@ -150,7 +149,12 @@ struct ff_pool
 
   ff_pool(prot_queue<Task *> *q, int nworkers)
   {
-    farm = build_farm(q,nworkers);
+    farm = build_farm(q, nworkers);
+  }
+
+  ~ff_pool()
+  {
+    farm->wait_freezing();
   }
 };
 
@@ -159,14 +163,13 @@ int main(int argc, char *argv[])
   int nworkers = 5;
   prot_queue<Task *> *q = new prot_queue<Task *>;
 
-  ff_pool p(q,nworkers);
+  ff_pool p(q, nworkers);
 
   q->push(new Task());
   q->push(new Task());
   q->push(new Task());
   q->push(nullptr);
 
-  p.farm->wait_freezing();
 
   return 0;
 }
