@@ -33,32 +33,86 @@ namespace plt = matplotlibcpp;
 
 #include "math.h"
 
+void parallel_matrix_dot_vector_ff(int row_start, int row_stop, int col_start, int col_stop, ff::ParallelFor *p, float **M, float *v, float *r)
+{
+  auto dot_f = [&](const int i)
+  {
+    dot_in_place(col_start, col_stop, M[i], v, &r[i]);
+  };
+  p->parallel_for(row_start, row_stop, dot_f);
+}
+
+void comp_state_ff(int Nr, int Nu, float *x, float *x_rec, float *x_in, float **Win, float *x_old, ff::ParallelFor *p)
+{
+  auto comp_state_f = [&](const int i)
+  {
+    comp_state_i(x, x_rec, x_in, x_in, Win, Nu, i);
+  };
+  p->parallel_for(0, Nr, comp_state_f);
+}
+
+void divide_by_const_ff(float *k, float *z, float k_den, int Nr, ff::ParallelFor *p)
+{
+  auto divide_by_const_f = [&](const int i)
+  {
+    divide_by_const(k, z, k_den, i);
+  };
+  p->parallel_for(0, Nr + 1, divide_by_const_f);
+}
+
+void compute_new_Wout_ff(float **Wout, float *d, float *y, float *k, float **Wold, int Nr, int Ny, ff::ParallelFor *p)
+{
+  auto compute_new_wout_f = [&](const int i)
+  {
+    compute_line_of_wout(0, Nr + 1, Wout, Wold, d, y, k, i)
+  };
+  p->parallel_for(0, Ny, compute_new_wout_f);
+}
+
+void compute_new_P_ff(float **P, float **Pold, float *k, float *z, float l, int Nr, ff::ParallelFor *p)
+{
+  auto compute_new_p_f = [&](const int i)
+  {
+    compute_line_of_P(0, Nr + 1, P, Pold, k, z, l, i);
+  };
+  p->parallel_for(0, Nr + 1, compute_new_p_f);
+}
+
+#define init_train_loop()                                                                    \
+  tie(Wout, Wold, P, Pold) = prepare_matrices(Nr, Ny, Wout, Wold, P, Pold, nabla);           \
+  tie(x, x_rec, x_in, x_old, k, z, y) = prepare_vectors(Nr, x, x_rec, x_in, x_old, k, z, y); \
+  vector<double> error_norms{};                                                              \
+  int cnt = 0;                                                                               \
+  x[Nr] = 1.0;                                                                               \
+  x_old[Nr] = 1.0;                                                                           \
+  float *u;                                                                                  \
+  float *d;                                                                                  \
+  float k_den;                                                                               \
+  float s;
+
+#define end_train_iteration()     \
+  s = compute_error(d, y, Ny);    \
+  error_norms.push_back(sqrt(s)); \
+  cnt++;
+
+#define init_train_iteration() \
+  u = dataset_n.m[cnt];        \
+  d = dataset.m[cnt + 1];
+
 vector<double> par_train(int par_degree, int c_line_size, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
                          int Nr, int Nu, int Ny, float nabla, float l,
                          float **W, float **Win, float **Wout, float **Wold, float **P, float **Pold,
                          float *x, float *x_rec, float *x_in, float *x_old, float *k, float *z, float *y)
 {
 
-  tie(Wout, Wold, P, Pold) = prepare_matrices(Nr, Ny, Wout, Wold, P, Pold, nabla);
-  tie(x, x_rec, x_in, x_old, k, z, y) = prepare_vectors(Nr, x, x_rec, x_in, x_old, k, z, y);
+  init_train_loop();
 
-  vector<double> error_norms{};
   Pool p(par_degree);
-  int cnt = 0;
-
-  x[Nr] = 1.0;
-  x_old[Nr] = 1.0;
-  float *u;
-  float *d;
-
-  float k_den;
-  float s;
 
   while (cnt < n_samples)
   {
 
-    u = dataset_n.m[cnt];
-    d = dataset.m[cnt + 1];
+    init_train_iteration();
 
     // compute rec and in parts of state update
     p.parallel_matrix_dot_vector(0, Nr, 0, Nr, c_line_size / 4, W, x_old, x_rec);
@@ -89,21 +143,9 @@ vector<double> par_train(int par_degree, int c_line_size, int n_samples, Matrix_
     p.map2(0, Nr + 1, 0, Nr + 1, -1, Compute_new_P(), P, Pold, k, z, l);
     p.barrier();
 
-    s = compute_error(d, y, Ny);
-    error_norms.push_back(sqrt(s));
-
-    cnt++;
+    end_train_iteration();
   }
   return error_norms;
-}
-
-void parallel_matrix_dot_vector_ff(int row_start, int row_stop, int col_start, int col_stop, ff::ParallelFor *p, float **M, float *v, float *r)
-{
-  auto dot_f = [&](const int i)
-  {
-    r[i] = dot(col_start, col_stop, M[i], v);
-  };
-  p->parallel_for(row_start, row_stop, dot_f);
 }
 
 vector<double> par_train_ff(int par_degree, int c_line_size, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
@@ -112,26 +154,14 @@ vector<double> par_train_ff(int par_degree, int c_line_size, int n_samples, Matr
                             float *x, float *x_rec, float *x_in, float *x_old, float *k, float *z, float *y)
 {
 
-  tie(Wout, Wold, P, Pold) = prepare_matrices(Nr, Ny, Wout, Wold, P, Pold, nabla);
-  tie(x, x_rec, x_in, x_old, k, z, y) = prepare_vectors(Nr, x, x_rec, x_in, x_old, k, z, y);
+  init_train_loop();
 
-  vector<double> error_norms{};
   ff::ParallelFor p(par_degree);
-  int cnt = 0;
-
-  x[Nr] = 1.0;
-  x_old[Nr] = 1.0;
-  float *u;
-  float *d;
-
-  float k_den;
-  float s;
 
   while (cnt < n_samples)
   {
 
-    u = dataset_n.m[cnt];
-    d = dataset.m[cnt + 1];
+    init_train_iteration();
 
     // compute rec and in parts of state update
     // x_rec = W x_old, x_in = Win u
@@ -139,12 +169,7 @@ vector<double> par_train_ff(int par_degree, int c_line_size, int n_samples, Matr
     parallel_matrix_dot_vector_ff(0, Nr, 0, Nu, &p, Win, u, x_in);
 
     // compute tanh(sum...)
-    auto comp_state_f = [&](const int i)
-    {
-      x[i] = tanh(x_rec[i] + x_in[i] + Win[i][Nu]); // Win[i]-> b[i] TODO
-      x_old[i] = x[i];
-    };
-    p.parallel_for(0, Nr, comp_state_f);
+    comp_state_ff(Nr, Nu, x, x_rec, x_in, Win, x_old, &p);
 
     // z = P|x
     parallel_matrix_dot_vector_ff(0, Nr + 1, 0, Nr + 1, &p, P, x, z);
@@ -155,37 +180,14 @@ vector<double> par_train_ff(int par_degree, int c_line_size, int n_samples, Matr
     k_den += l;
 
     // k = z/k_den
-    auto divide_by_const_f = [&](const int i)
-    {
-      k[i] = (z[i] / k_den);
-    };
-    p.parallel_for(0, Nr + 1, divide_by_const_f);
+    divide_by_const_ff(k, z, k_den, Nr, &p);
 
     // Wold = .... ,  P = ...
-    auto compute_new_wout_f = [&](const int i)
-    {
-      for (int j = 0; j < Nr + 1; j++)
-      {
-        Wout[i][j] = Wold[i][j] + (d[i] - y[i]) * k[j];
-        Wold[i][j] = Wout[i][j];
-      }
-    };
-    p.parallel_for(0, Ny, compute_new_wout_f);
+    compute_new_Wout_ff(Wout, d, y, k, Wold, Nr, Ny, &p);
 
-    auto compute_new_p_f = [&](const int i)
-    {
-      for (int j = 0; j < Nr + 1; j++)
-      {
-        P[i][j] = (Pold[i][j] - k[i] * z[j]) * 1 / l;
-        Pold[i][j] = P[i][j];
-      }
-    };
-    p.parallel_for(0, Nr + 1, compute_new_p_f);
+    compute_new_P_ff(P, Pold, k, z, l, Nr, &p);
 
-    s = compute_error(d, y, Ny);
-    error_norms.push_back(sqrt(s));
-
-    cnt++;
+    end_train_iteration();
   }
   return error_norms;
 }
@@ -199,61 +201,6 @@ struct Parameters
   float *x, *x_rec, *x_in, *x_old, *u, *d, *k, *z, *y;
   T *mdf;
 };
-
-void comp_state_ff(int Nr, int Nu, float *x, float *x_rec, float *x_in, float **Win, float *x_old, ff::ParallelFor *p)
-{
-  auto comp_state_f = [&](const int i)
-  {
-    x[i] = tanh(x_rec[i] + x_in[i] + Win[i][Nu]); // Win[i]-> b[i] TODO
-    x_old[i] = x[i];
-  };
-  p->parallel_for(0, Nr, comp_state_f);
-}
-
-void divide_by_const_ff(float *k, float *z, float k_den, int Nr, ff::ParallelFor *p)
-{
-  auto divide_by_const_f = [&](const int i)
-  {
-    k[i] = (z[i] / k_den);
-  };
-  p->parallel_for(0, Nr + 1, divide_by_const_f);
-}
-
-void dot_in_place(int start, int stop, float *v1, float *v2, float *x)
-{
-  float s = 0.0;
-  for (int i = start; i < stop; i++)
-  {
-    s += v1[i] * v2[i];
-  }
-  *x = s;
-}
-
-void compute_new_Wout_ff(float **Wout, float *d, float *y, float *k, float **Wold, int Nr, int Ny, ff::ParallelFor *p)
-{
-  auto compute_new_wout_f = [&](const int i)
-  {
-    for (int j = 0; j < Nr + 1; j++)
-    {
-      Wout[i][j] = Wold[i][j] + (d[i] - y[i]) * k[j];
-      Wold[i][j] = Wout[i][j];
-    }
-  };
-  p->parallel_for(0, Ny, compute_new_wout_f);
-}
-
-void compute_new_P_ff(float **P, float **Pold, float *k, float *z, float l, int Nr, ff::ParallelFor *p)
-{
-  auto compute_new_p_f = [&](const int i)
-  {
-    for (int j = 0; j < Nr + 1; j++)
-    {
-      P[i][j] = (Pold[i][j] - k[i] * z[j]) * 1 / l;
-      Pold[i][j] = P[i][j];
-    }
-  };
-  p->parallel_for(0, Nr + 1, compute_new_p_f);
-}
 
 #define mdf_submit_matrix_dot_vector(mdf, Param, ptr_p, row_start, row_stop, col_start, col_stop, M, v, r)          \
   {                                                                                                                 \
@@ -488,18 +435,7 @@ vector<double> par_train_mdf(int par_degree, int c_line_size, int n_samples, Mat
                              float *x, float *x_rec, float *x_in, float *x_old, float *k, float *z, float *y)
 {
 
-  tie(Wout, Wold, P, Pold) = prepare_matrices(Nr, Ny, Wout, Wold, P, Pold, nabla);
-  tie(x, x_rec, x_in, x_old, k, z, y) = prepare_vectors(Nr, x, x_rec, x_in, x_old, k, z, y);
-
-  vector<double> error_norms{};
-  int cnt = 0;
-
-  x[Nr] = 1.0;
-  x_old[Nr] = 1.0;
-  float *u;
-  float *d;
-
-  float s;
+  init_train_loop();
 
   // data structure that contains data used by the DAG
   Parameters<ff::ff_mdf> Par;
@@ -522,10 +458,7 @@ vector<double> par_train_mdf(int par_degree, int c_line_size, int n_samples, Mat
     // after execution, e.g. y contains the output of the
     // network at the end of the iteration
 
-    s = compute_error(Par.d, Par.y, Ny);
-    error_norms.push_back(sqrt(s));
-
-    cnt++;
+    end_train_iteration();
   }
   return error_norms;
 }

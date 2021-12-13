@@ -2,6 +2,12 @@
 #define linear_algebra
 #include "linear_algebra.h"
 #endif
+
+#ifndef utils_h
+#define utils_h
+#include "utils.h"
+#endif
+
 #include "math.h"
 #include <iostream>
 #include <mutex>
@@ -47,7 +53,7 @@ public:
   }
   void execute()
   {
-    res_ptr[i] = dot(start, stop, M[i], y);
+    dot_in_place(start, stop, M[i], y, &res_ptr[i]);
   }
 };
 
@@ -74,8 +80,7 @@ public:
   {
     for (int i = start; i < stop; i++)
     {
-      x[i] = tanh(x_rec[i] + x_in[i] + Win[i][Nu]); // Win[i]-> b[i] TODO
-      x_old[i] = x[i];
+      comp_state_i(x, x_rec, x_in, x_in, Win, Nu, i);
     }
   }
 };
@@ -100,7 +105,7 @@ public:
   {
     for (int i = start; i < stop; i++)
     {
-      r[i] = (v[i] / k);
+      divide_by_const(r, v, k, i);
     }
   }
 };
@@ -129,11 +134,7 @@ public:
   {
     for (int i = i0; i < ii; i++)
     {
-      for (int j = start; j < stop; j++)
-      {
-        Wout[i][j] = Wold[i][j] + (d[i] - y[i]) * k[j];
-        Wold[i][j] = Wout[i][j];
-      }
+      compute_line_of_wout(start, stop, Wout, Wold, d, y, k, i)
     }
   }
 };
@@ -162,11 +163,7 @@ public:
   {
     for (int i = i0; i < ii; i++)
     {
-      for (int j = start; j < stop; j++)
-      {
-        P[i][j] = (Pold[i][j] - k[i] * z[j]) * 1 / l;
-        Pold[i][j] = P[i][j];
-      }
+      compute_line_of_P(start, stop, P, Pold, k, z, l, i);
     }
   }
 };
@@ -198,7 +195,7 @@ public:
   {
     for (int i = i0; i < ii; i++)
     {
-      y[i] = dot(start, stop, M[i], x);
+      dot_in_place(start,stop,M[i],x,&y[i]);
     }
   }
 };
