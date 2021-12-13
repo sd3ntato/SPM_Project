@@ -433,35 +433,62 @@ void compute_new_P_ff(float **P, float **Pold, float *k, float *z, float l, int 
     }                                                                     \
   }
 
+#define pack_values(Par)         \
+  {                              \
+    Par.Nr = Nr;                 \
+    Par.Nu = Nu;                 \
+    Par.Ny = Ny;                 \
+    Par.par_degree = par_degree; \
+    Par.l = l;                   \
+    Par.W = W;                   \
+    Par.Win = Win;               \
+    Par.Wout = Wout;             \
+    Par.Wold = Wold;             \
+    Par.P = P;                   \
+    Par.Pold = Pold;             \
+    Par.x = x;                   \
+    Par.x_rec = x_rec;           \
+    Par.x_in = x_in;             \
+    Par.x_old = x_old;           \
+    Par.k = k;                   \
+    Par.z = z;                   \
+    Par.y = y;                   \
+  }
+
+#define unpack_values(Par)        \
+  {                               \
+    Nr = Par->Nr;                 \
+    Nu = Par->Nu;                 \
+    Ny = Par->Ny;                 \
+    par_degree = Par->par_degree; \
+    W = Par->W;                   \
+    Win = Par->Win;               \
+    Wout = Par->Wout;             \
+    Wold = Par->Wold;             \
+    P = Par->P;                   \
+    Pold = Par->Pold;             \
+    x = Par->x;                   \
+    x_rec = Par->x_rec;           \
+    x_in = Par->x_in;             \
+    x_old = Par->x_old;           \
+    u = Par->u;                   \
+    d = Par->d;                   \
+    k = Par->k;                   \
+    z = Par->z;                   \
+    y = Par->y;                   \
+    l = Par->l;                   \
+    k_den = 0.0;                  \
+  }
+
 // istanzia DAG di una iterazione, sottopone le task. il risultato dell' operazione lo deposita in appsito puntatore
 void taskGen(Parameters<ff::ff_mdf> *const Par)
 {
   ff::ff_mdf *mdf = Par->mdf;
 
-  int Nr = Par->Nr;
-  int Nu = Par->Nu;
-  int Ny = Par->Ny;
-  int par_degree = Par->par_degree;
-
-  float **W = Par->W;
-  float **Win = Par->Win;
-  float **Wout = Par->Wout;
-  float **Wold = Par->Wold;
-  float **P = Par->P;
-  float **Pold = Par->Pold;
-
-  float *x = Par->x;
-  float *x_rec = Par->x_rec;
-  float *x_in = Par->x_in;
-  float *x_old = Par->x_old;
-  float *u = Par->u;
-  float *d = Par->d;
-  float *k = Par->k;
-  float *z = Par->z;
-  float *y = Par->y;
-
-  float l = Par->l;
-  float k_den = 0.0;
+  int Nr, Nu, Ny, par_degree;
+  float **W, **Win, **Wout, **Wold, **P, **Pold;
+  float *x, *x_rec, *x_in, *x_old, *u, *d, *k, *z, *y, l, k_den;
+  unpack_values(Par);
 
   std::vector<ff::param_info> Param;
   const int c0 = 0;
@@ -525,24 +552,7 @@ vector<double> par_train_mdf(int par_degree, int c_line_size, int n_samples, Mat
   // data structure that contains data used by the DAG
   Parameters<ff::ff_mdf> Par;
   // fill up parameters int Par strurcture
-  Par.Nr = Nr;
-  Par.Nu = Nu;
-  Par.Ny = Ny;
-  Par.par_degree = par_degree;
-  Par.l = l;
-  Par.W = W;
-  Par.Win = Win;
-  Par.Wout = Wout;
-  Par.Wold = Wold;
-  Par.P = P;
-  Par.Pold = Pold;
-  Par.x = x;
-  Par.x_rec = x_rec;
-  Par.x_in = x_in;
-  Par.x_old = x_old;
-  Par.k = k;
-  Par.z = z;
-  Par.y = y;
+  pack_values(Par);
 
   while (cnt < n_samples)
   {

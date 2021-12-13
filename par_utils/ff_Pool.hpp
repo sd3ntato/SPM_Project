@@ -13,95 +13,112 @@
 #include <ff/farm.hpp>
 #include <vector>
 
-struct Worker : ff::ff_node_t<Task>
-{
-  Task *svc(Task *task)
-  {
-    std::cout << "recieved task" << std::endl << std::flush;
-    task->execute();
-    {
-      unique_lock<std::mutex> lock(*(task->mutex));
-      task->terminated = true;
-      std::cout << " task terminated " << std::endl << std::flush;
-    }
-    task->condition->notify_all();
-    return task;
-  }
-};
+using namespace ff;
 
-struct Emitter : ff::ff_node_t<Task>
-{
-  prot_queue<Task *> *taskq;
-  Emitter(prot_queue<Task *> *taskq)
-  {
-    this->taskq = taskq;
+#define set_terminated(t)                        \
+  {                                              \
+    {                                            \
+      unique_lock<std::mutex> lock(*(t->mutex)); \
+      t->terminated = true;                      \
+    }                                            \
+    t->condition->notify_all();                  \
   }
+
+#define await_termination_of(task)                                                       \
+  {                                                                                      \
+    unique_lock<std::mutex> lock(*(task->mutex));                                        \
+    task->condition->wait(lock, [=]                                                      \
+                          {                                                              \
+                            std::cout << "submit check" << task->terminated << std::endl \
+                                      << std::flush;                                     \
+                            return task->terminated;                                     \
+                          });                                                            \
+  }
+
+struct Worker : ff_node_t<Task>
+{
   Task *svc(Task *t)
   {
-    Task *task;
-    while (true)
-    {
-      task = taskq->pop(); //this blocks until a task comes out
-      std::cout << "popped task "<<task << std::endl << std::flush;
-      if (task)
-      {
-        ff_send_out(task);
-        std::cout << "sent task" << std::endl << std::flush;
-      }
-    }
+    t->execute();
+    set_terminated(t);
     return t;
   }
 };
 
-class ff_Pool
+struct Emitter : ff_node_t<Task>
 {
-private:
-  ff::ff_farm *farm;
-  prot_queue<Task *> taskq;
-
-public:
-  int nworkers;
-  ff_Pool(int nworkers)
+  prot_queue<Task *> *taskq;
+  Emitter(prot_queue<Task *> *q)
   {
-    this->nworkers = nworkers;
-
-    Emitter emitter(&taskq);
-
-    std::vector<ff::ff_node *> Workers;
-    for (int i = 0; i < nworkers; i++)
+    taskq = q;
+  }
+  Task *svc(Task *)
+  {
+    Task *t;
+    while (true)
     {
-      Workers.push_back(new Worker);
+      t = taskq->pop();
+      if (t)
+        ff_send_out(t);
+      else
+        break;
     }
+    return EOS;
+  }
+};
 
-    farm = new ff::ff_farm(Workers);
-    farm->add_emitter(&emitter);
-    farm->remove_collector();
+ff_Farm<Task> *build_farm(prot_queue<Task *> *q, int nworkers)
+{
+  ff_Farm<Task> *farm = new ff_Farm<Task>([nworkers]()
+                                          {
+                                            std::vector<std::unique_ptr<ff_node>> Workers;
+                                            for (int i = 0; i < nworkers; ++i)
+                                              Workers.push_back(std::unique_ptr<ff_node_t<Task>>(new Worker));
+                                            return Workers;
+                                          }());
 
-    int e = farm->run_then_freeze();
-    if(e<0){
-      std::cout<<"error "<<e <<" running farm"<<std::endl<<std::flush;
-    }
-    else{
-      std::cout<<"farm is running  "<<std::endl<<std::flush;
-    }
+  Emitter *E = new Emitter(q);
+  farm->add_emitter(*E);
+  farm->remove_collector();
+
+  if (farm->run_then_freeze() < 0)
+    error("running farm");
+
+  return farm;
+}
+
+struct ff_pool
+{
+  ff_Farm<Task> *farm;
+  prot_queue<Task *> *taskq;
+
+  ff_pool(int nworkers)
+  {
+    taskq = new prot_queue<Task *>;
+    ;
+    farm = build_farm(taskq, nworkers);
+  }
+
+  ~ff_pool()
+  {
+    this->terminate();
+    farm->wait_freezing();
   }
 
   void submit(vector<Task *> taskv)
   {
     for (int i = 0; i < taskv.size(); i++)
     {
-      taskq.push(taskv[i]);
-      std::cout << "pushed task "<<taskv[i] << std::endl << std::flush;
+      taskq->push(taskv[i]);
     }
     for (int i = 0; i < taskv.size(); i++)
     {
-      unique_lock<std::mutex> lock(*(taskv[i]->mutex));
-      taskv[i]->condition->wait(lock, [=]
-                                { 
-                                  std::cout << "submit check"<<taskv[i]->terminated << std::endl << std::flush;
-                                  return taskv[i]->terminated; });
-      std::cout << "submite task done" << std::endl << std::flush;
+      await_termination_of(taskv[i]);
     } //esco da qui che tutte le task che ho submittato sono terminate
-    std::cout << "submit done" << std::endl << std::flush;
+  }
+
+  void terminate()
+  {
+    taskq->push(nullptr);
   }
 };
