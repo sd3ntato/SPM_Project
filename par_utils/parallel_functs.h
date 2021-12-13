@@ -33,50 +33,6 @@ namespace plt = matplotlibcpp;
 
 #include "math.h"
 
-template <typename T, typename... Args>
-void map1(int begin, int end, Pool &p, T task, Args... args)
-{
-  int n_points = end - begin;
-  int diff = max((int)floor(n_points / p.n_workers), 128 / 4);
-  if (diff == 0)
-    diff = n_points;
-  int start, stop;
-  for (int i = begin; i < end; i += diff)
-  {
-    start = i;
-    stop = min(i + diff, end);
-    p.submit({new T(start, stop, args...)});
-  }
-}
-
-template <typename T, typename... Args>
-void map2(int begin, int end, int start, int stop, int diff, Pool &p, T task, Args... args)
-{
-  if (diff == -1)
-  {
-    int n_points = end - begin;
-    if (n_points <= p.n_workers)
-      diff = n_points;
-    else
-      diff = max((int)floor(n_points / p.n_workers), 128 / 4);
-  }
-  int i0, ii;
-  for (int i = begin; i < end; i += diff)
-  {
-    i0 = i;
-    ii = min(i + diff, end);
-    //            horizontally   vertically
-    //            |           |  |     |
-    p.submit({new T(start, stop, i0, ii, args...)});
-  }
-}
-
-void parallel_matrix_dot_vector(int row_start, int row_stop, int col_start, int col_stop, int diff, Pool &p, float **M, float *v, float *r)
-{
-  map2(row_start, row_stop, col_start, col_stop, diff, p, Multiple_Dot_task(), M, v, r);
-  p.barrier();
-}
-
 vector<double> par_train(int par_degree, int c_line_size, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
                          int Nr, int Nu, int Ny, float nabla, float l,
                          float **W, float **Win, float **Wout, float **Wold, float **P, float **Pold,
@@ -105,39 +61,35 @@ vector<double> par_train(int par_degree, int c_line_size, int n_samples, Matrix_
     d = dataset.m[cnt + 1];
 
     // compute rec and in parts of state update
-    parallel_matrix_dot_vector(0, Nr, 0, Nr, c_line_size / 4, ref(p), W, x_old, x_rec);
-    parallel_matrix_dot_vector(0, Nr, 0, Nu, c_line_size / 4, ref(p), Win, u, x_in);
+    p.parallel_matrix_dot_vector(0, Nr, 0, Nr, c_line_size / 4, W, x_old, x_rec);
+    p.parallel_matrix_dot_vector(0, Nr, 0, Nu, c_line_size / 4, Win, u, x_in);
     p.barrier();
 
     // compute tanh(sum...)
-    map1(0, Nr, ref(p), Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);
+    p.map1(0, Nr, Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);
     p.barrier();
 
     // z = P|x
-    parallel_matrix_dot_vector(0, Nr + 1, 0, Nr + 1, c_line_size / 4, ref(p), P, x, z);
+    p.parallel_matrix_dot_vector(0, Nr + 1, 0, Nr + 1, c_line_size / 4, P, x, z);
     p.barrier();
 
     // k_den = x.T | z , y = Wout|x
-    parallel_matrix_dot_vector(0, Ny, 0, Nr + 1, c_line_size / 4, ref(p), Wout, x, y);
+    p.parallel_matrix_dot_vector(0, Ny, 0, Nr + 1, c_line_size / 4, Wout, x, y);
     p.submit({new Dot_task(0, Nr + 1, 0, &x, z, &k_den)});
     p.barrier();
 
     k_den += l;
 
     // k = z/k_den
-    map1(0, Nr + 1, ref(p), Divide_by_const(), z, k_den, k);
+    p.map1(0, Nr + 1, Divide_by_const(), z, k_den, k);
     p.barrier();
 
     // Wold = .... ,  P = ...
-    map2(0, Ny, 0, Nr + 1, -1, ref(p), Compute_new_Wout(), Wout, Wold, d, y, k);
-    map2(0, Nr + 1, 0, Nr + 1, -1, ref(p), Compute_new_P(), P, Pold, k, z, l);
+    p.map2(0, Ny, 0, Nr + 1, -1, Compute_new_Wout(), Wout, Wold, d, y, k);
+    p.map2(0, Nr + 1, 0, Nr + 1, -1, Compute_new_P(), P, Pold, k, z, l);
     p.barrier();
 
-    s = 0;
-    for (int i = 0; i < Ny; i++)
-    {
-      s += pow(d[i] - y[i], 2);
-    }
+    s = compute_error(d, y, Ny);
     error_norms.push_back(sqrt(s));
 
     cnt++;

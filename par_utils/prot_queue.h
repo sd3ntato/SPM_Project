@@ -44,7 +44,7 @@ inline T prot_queue<T>::pop()
     rc = this->d_queue.back();
     this->d_queue.pop_back();
   }
-  d_condition.notify_all();
+  d_condition.notify_one();
   return rc;
 }
 

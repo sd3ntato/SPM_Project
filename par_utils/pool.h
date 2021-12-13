@@ -10,7 +10,28 @@
 #include "prot_queue.h"
 #endif
 
+#ifndef pool_utils_h
+#define pool_utils_h
+#include "pool_utils.hpp"
+#endif
+
 using namespace std;
+
+void worker_fun(prot_queue<Task *> &taskq, bool &stop)
+{
+  Task *task;
+  while (true)
+  {
+    task = taskq.pop(); // this blocks the thread until something inserts into the queue
+    if (task)
+    {
+      task->execute();
+      delete task;
+    }
+    else
+      return; // nullptr = EOS
+  }
+}
 
 class Pool
 {
@@ -24,14 +45,91 @@ private:
 
 public:
   int n_workers;
-  Pool(int n);
-  ~Pool() { this->terminate(); }
-  void submit(vector<Task *> taskv);
-  void terminate();
-  void barrier();
-};
+  Pool(int n)
+  {
+    n_workers = n;
+    taskqs = new prot_queue<Task *>[n];
+    stops = new bool[n];
+    threads = new thread[n];
+    last_submitted = 0;
 
-int min(int a, int b);
-int max(int a, int b);
-float sum(float *a, int n);
-float parallel_dot(float *a, float *b, int n, Pool &p, int k);
+    for (int i = 0; i < n; i++)
+    {
+      stops[i] = 0;
+      threads[i] = thread(worker_fun, ref(taskqs[i]), ref(stops[i]));
+    }
+  }
+
+  void submit(vector<Task *> taskv)
+  {
+    for (int i = 0; i < taskv.size(); i++)
+    {
+      last_submitted = (last_submitted + 1) % n_workers;
+      taskqs[last_submitted].push(taskv[i]);
+    }
+  }
+
+  void terminate()
+  {
+    for (int i = 0; i < n_workers; i++)
+    {
+      taskqs[i].push(nullptr);
+    }
+  }
+
+  void barrier()
+  {
+    for (int i = 0; i < n_workers; i++)
+    {
+      taskqs[i].wait_empty();
+      //assert( taskqs[i].empty() );
+    }
+    return;
+  }
+
+  ~Pool() { this->terminate(); }
+
+  template <typename T, typename... Args>
+  void map1(int begin, int end, T task, Args... args)
+  {
+    int n_points = end - begin;
+    int diff = max((int)floor(n_points / n_workers), 128 / 4);
+    if (diff == 0)
+      diff = n_points;
+    int start, stop;
+    for (int i = begin; i < end; i += diff)
+    {
+      start = i;
+      stop = min(i + diff, end);
+      this->submit({new T(start, stop, args...)});
+    }
+  }
+
+  template <typename T, typename... Args>
+  void map2(int begin, int end, int start, int stop, int diff, T task, Args... args)
+  {
+    if (diff == -1)
+    {
+      int n_points = end - begin;
+      if (n_points <= n_workers)
+        diff = n_points;
+      else
+        diff = max((int)floor(n_points / n_workers), 128 / 4);
+    }
+    int i0, ii;
+    for (int i = begin; i < end; i += diff)
+    {
+      i0 = i;
+      ii = min(i + diff, end);
+      //            horizontally   vertically
+      //            |           |  |     |
+      this->submit({new T(start, stop, i0, ii, args...)});
+    }
+  }
+
+  void parallel_matrix_dot_vector(int row_start, int row_stop, int col_start, int col_stop, int diff, float **M, float *v, float *r)
+  {
+    this->map2(row_start, row_stop, col_start, col_stop, diff, Multiple_Dot_task(), M, v, r);
+    this->barrier();
+  }
+};

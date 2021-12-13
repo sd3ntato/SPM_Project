@@ -41,7 +41,7 @@ using namespace std;
 
 int main()
 {
-  int n_samples = 100;
+  int n_samples = 10;
   int n_trials = 1;
   int c_line_size = 128;
   int max_par_degree = 10;
@@ -51,7 +51,7 @@ int main()
   Matrix_wrapper dataset_n = normalize(dataset);
   cout << "dataset read" << endl;
 
-  vector<int> Nrs = {2000,1000};
+  vector<int> Nrs = {1000};
   vector<double> *times_for_each_Nr = new vector<double>[Nrs.size()];
   vector<double> *speedups_for_each_Nr = new vector<double>[Nrs.size()];
   vector<double> *scalabilities_for_each_Nr = new vector<double>[Nrs.size()];
@@ -82,12 +82,12 @@ int main()
     float *y = zeros(1, 4).m[0];
 
     times_for_each_Nr[i] = compute_average_times("mdf", Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
-    /*
 
     double t0 = compute_sequential_time(Nr, n_samples, n_trials, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
     
     //without fastflow
     times_for_each_Nr[i] = compute_average_times("none", Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
+    /*
     speedups_for_each_Nr[i] = compute_speedups(times_for_each_Nr[i], t0);
     scalabilities_for_each_Nr[i] = compute_scalabilities(times_for_each_Nr[i]);
     efficiencies_for_each_Nr[i] = compute_effieciencies(speedups_for_each_Nr[i]);
