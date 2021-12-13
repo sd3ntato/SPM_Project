@@ -59,6 +59,7 @@ double var(Matrix_wrapper mat);
 void free_matrices(std::vector<Matrix_wrapper> matrices);
 float spectral_radius(MatrixXd M);
 float dot(int start, int stop, float *v1, float *v2);
+void dot_in_place(int start, int stop, float *v1, float *v2, float *x);
 double mean(std::vector<double> ts);
 float **zeros(int n1, int n2, float **place);
 float *zeros(int n1, float *place);

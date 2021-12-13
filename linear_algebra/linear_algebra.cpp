@@ -512,6 +512,12 @@ float dot(int start, int stop, float *v1, float *v2)
   return s;
 }
 
+void dot_in_place(int start, int stop, float *v1, float *v2, float *x)
+{
+  float s = dot(start, stop, v1, v2);
+  *x = s;
+}
+
 #include <fstream>
 #include <string>
 #include <sstream>

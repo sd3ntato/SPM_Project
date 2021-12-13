@@ -33,12 +33,8 @@ public:
 struct Dot_task : public Task
 {
 private:
-  int start;
-  int stop;
-  int i;
-  float **M;
-  float *y;
-  float *res_ptr;
+  int start, stop, i;
+  float **M, *y, *res_ptr;
 
 public:
   Dot_task() = default;
@@ -171,13 +167,8 @@ public:
 struct Multiple_Dot_task : public Task
 {
 private:
-  int start;
-  int stop;
-  int i0;
-  int ii;
-  float **M;
-  float *x;
-  float *y;
+  int start, stop, i0, ii;
+  float **M, *x, *y;
 
 public:
   Multiple_Dot_task() = default;
@@ -195,7 +186,7 @@ public:
   {
     for (int i = i0; i < ii; i++)
     {
-      dot_in_place(start,stop,M[i],x,&y[i]);
+      dot_in_place(start, stop, M[i], x, &y[i]);
     }
   }
 };

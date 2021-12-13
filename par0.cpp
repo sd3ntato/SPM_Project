@@ -18,6 +18,11 @@
 #include "parallel_functs.h"
 #endif
 
+#ifndef metrics_computation_h
+#define metrics_computation_h
+#include "metrics_computation.hpp"
+#endif
+
 #ifndef ESN_h
 #define ESN_h
 #include "ESN.h"
