@@ -9,8 +9,8 @@
 #include <tasks.h>
 #endif
 
-#include <ff/farm.hpp>
 #include <ff/ff.hpp>
+#include <ff/farm.hpp>
 #include <vector>
 
 struct Worker : ff::ff_node_t<Task>
