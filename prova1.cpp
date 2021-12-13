@@ -87,11 +87,32 @@ float *zeros(int n1)
 
 using namespace ff;
 
+#define set_terminated(t)                        \
+  {                                              \
+    {                                            \
+      unique_lock<std::mutex> lock(*(t->mutex)); \
+      t->terminated = true;                      \
+    }                                            \
+    t->condition->notify_all();                  \
+  }
+
+#define await_termination_of(task)                                                       \
+  {                                                                                      \
+    unique_lock<std::mutex> lock(*(task->mutex));                                        \
+    task->condition->wait(lock, [=]                                                      \
+                          {                                                              \
+                            std::cout << "submit check" << task->terminated << std::endl \
+                                      << std::flush;                                     \
+                            return task->terminated;                                     \
+                          });                                                            \
+  }
+
 struct Worker : ff_node_t<Task>
 {
   Task *svc(Task *t)
   {
-    std::cout << t << std::endl;
+    t->execute();
+    set_terminated(t);
     return t;
   } // it does nothing, just sends out tasks
 };
@@ -103,12 +124,11 @@ struct Emitter : ff_node_t<Task>
   Emitter(prot_queue<Task *> *q)
   {
     taskq = q;
-    std::cout << "emitter built" << std::endl;
   }
   Task *svc(Task *)
   {
     Task *t;
-    for (long i = 0; i <= size; ++i)
+    while (true)
     {
       t = taskq->pop();
       if (t)
@@ -119,9 +139,6 @@ struct Emitter : ff_node_t<Task>
     return EOS;
   }
 };
-
-//void deamon_funct(prot_queue<Task *> *q, int nworkers)
-//auto th = thread(deamon_funct,q,nworkers);
 
 ff_Farm<Task> *build_farm(prot_queue<Task *> *q, int nworkers)
 {
@@ -146,15 +163,34 @@ ff_Farm<Task> *build_farm(prot_queue<Task *> *q, int nworkers)
 struct ff_pool
 {
   ff_Farm<Task> *farm;
+  prot_queue<Task *> *taskq;
 
   ff_pool(prot_queue<Task *> *q, int nworkers)
   {
+    taskq = q;
     farm = build_farm(q, nworkers);
   }
 
   ~ff_pool()
   {
+    this->terminate();
     farm->wait_freezing();
+  }
+
+  void submit(vector<Task *> taskv)
+  {
+    for (int i = 0; i < taskv.size(); i++)
+    {
+      taskq->push(taskv[i]);
+    }
+    for (int i = 0; i < taskv.size(); i++)
+    {
+      await_termination_of(taskv[i]);
+    } //esco da qui che tutte le task che ho submittato sono terminate
+  }
+
+  void terminate(){
+    taskq->push(nullptr);
   }
 };
 
@@ -165,11 +201,14 @@ int main(int argc, char *argv[])
 
   ff_pool p(q, nworkers);
 
-  q->push(new Task());
-  q->push(new Task());
-  q->push(new Task());
-  q->push(nullptr);
+  float **M = zeros(10, 10);
+  float *v = zeros(10);
+  float *r1 = zeros(10);
+  float *r2 = zeros(10);
+  float *r3 = zeros(10);
 
+  std::vector<Task*> tasks = { new Dot_task(0, 10, 1, M, v, r1),new Dot_task(0, 10, 2, M, v, r2) ,new Dot_task(0, 10, 3, M, v, r3)};
+  p.submit( tasks );
 
   return 0;
 }
