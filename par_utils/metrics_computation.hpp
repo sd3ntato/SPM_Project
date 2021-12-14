@@ -42,6 +42,8 @@ vector<double> compute_average_times(string ff, int Nr, int n_samples, int n_tri
           err = par_train_mdf(par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
         if (ff == "none")
           err = par_train(par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
+        if (ff == "ff_pool")
+          err = par_train_ffPool(par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
         plt::plot(err);
         plt::title("err with " + to_string(Nr) + " neurons and par deg " + to_string(par_deg));
         plt::save("imgs/" + to_string(Nr) + "-" + to_string(par_deg) + "-err");

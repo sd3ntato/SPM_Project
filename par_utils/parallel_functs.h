@@ -232,3 +232,46 @@ vector<double> par_train_mdf(int par_degree, int c_line_size, int n_samples, Mat
   }
   return error_norms;
 }
+
+vector<double> par_train_ffPool(int par_degree, int c_line_size, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
+                         int Nr, int Nu, int Ny, float nabla, float l,
+                         float **W, float **Win, float **Wout, float **Wold, float **P, float **Pold,
+                         float *x, float *x_rec, float *x_in, float *x_old, float *k, float *z, float *y)
+{
+
+  init_train_loop();
+
+  ff_pool p(par_degree);
+
+  while (cnt < n_samples)
+  {
+
+    init_train_iteration();
+
+    // compute rec and in parts of state update
+    p.parallel_matrix_dot_vector(0, Nr, 0, Nr, c_line_size / 4, W, x_old, x_rec);
+    p.parallel_matrix_dot_vector(0, Nr, 0, Nu, c_line_size / 4, Win, u, x_in);
+
+    // compute tanh(sum...)
+    p.map1(0, Nr, Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);
+
+    // z = P|x
+    p.parallel_matrix_dot_vector(0, Nr + 1, 0, Nr + 1, c_line_size / 4, P, x, z);
+
+    // k_den = x.T | z , y = Wout|x
+    p.parallel_matrix_dot_vector(0, Ny, 0, Nr + 1, c_line_size / 4, Wout, x, y);
+    p.submit({new Dot_task(0, Nr + 1, 0, &x, z, &k_den)});
+
+    k_den += l;
+
+    // k = z/k_den
+    p.map1(0, Nr + 1, Divide_by_const(), z, k_den, k);
+
+    // Wold = .... ,  P = ...
+    p.map2(0, Ny, 0, Nr + 1, -1, Compute_new_Wout(), Wout, Wold, d, y, k);
+    p.map2(0, Nr + 1, 0, Nr + 1, -1, Compute_new_P(), P, Pold, k, z, l);
+
+    end_train_iteration();
+  }
+  return error_norms;
+}
