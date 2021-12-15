@@ -125,11 +125,11 @@ struct ff_pool
   }
 
   template <typename T, typename... Args>
-  void map1(int begin, int end, T task, Args... args)
+  static void map1(ff_pool *p, int begin, int end, T task, Args... args)
   {
     std::vector<Task *> tasks;
     int n_points = end - begin;
-    int diff = max((int)floor(n_points / nworkers), 128 / 4);
+    int diff = max((int)floor(n_points / p->nworkers), 128 / 4);
     if (diff == 0)
       diff = n_points;
     int start, stop;
@@ -139,21 +139,21 @@ struct ff_pool
       stop = min(i + diff, end);
       tasks.push_back(new T(start, stop, args...));
     }
-    this->submit(tasks);
+    p->submit(tasks);
   }
 
   template <typename T, typename... Args>
-  void map2(int begin, int end, int start, int stop, int diff, T task, Args... args)
+  static void map2(ff_pool *p, int begin, int end, int start, int stop, int diff, T task, Args... args)
   {
     int i0, ii;
     std::vector<Task *> tasks;
     if (diff == -1)
     {
       int n_points = end - begin;
-      if (n_points <= nworkers)
+      if (n_points <= p->nworkers)
         diff = n_points;
       else
-        diff = max((int)floor(n_points / nworkers), 128 / 4);
+        diff = max((int)floor(n_points / p->nworkers), 128 / 4);
     }
     for (int i = begin; i < end; i += diff)
     {
@@ -163,16 +163,31 @@ struct ff_pool
       //                   |          |  |     |
       tasks.push_back(new T(start, stop, i0, ii, args...));
     }
-    this->submit(tasks);
+    p->submit(tasks);
   }
 
-  void parallel_matrix_dot_vector(int row_start, int row_stop, int col_start, int col_stop, int diff, float **M, float *v, float *r)
+  static void parallel_matrix_dot_vector(ff_pool *p, int row_start, int row_stop, int col_start, int col_stop, int diff, float **M, float *v, float *r)
   {
-    this->map2(row_start, row_stop, col_start, col_stop, diff, Multiple_Dot_task(), M, v, r);
+    ff_pool::map2(p, row_start, row_stop, col_start, col_stop, diff, Multiple_Dot_task(), M, v, r);
   }
 
-  static void static_parallel_matrix_dot_vector(ff_pool* p, int row_start, int row_stop, int col_start, int col_stop, int diff, float **M, float *v, float *r)
+  static void comp_state(int Nr, int Nu, float *x, float *x_rec, float *x_in, float **Win, float *x_old, ff_pool *p)
   {
-    p->map2(row_start, row_stop, col_start, col_stop, diff, Multiple_Dot_task(), M, v, r);
+    p->map1(p, 0, Nr, Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);
+  }
+
+  static void div_by_const(float *k, float *z, float k_den, int stop, ff_pool *p)
+  {
+    p->map1(p, 0, stop, Divide_by_const(), z, k_den, k);
+  }
+
+  static void compute_new_wout(float **Wout, float *d, float *y, float *k, float **Wold, int Nr, int Ny, ff_pool *p)
+  {
+    p->map2(p, 0, Ny, 0, Nr + 1, -1, Compute_new_Wout(), Wout, Wold, d, y, k);
+  }
+
+  static void compute_new_P(float **P, float **Pold, float *k, float *z, float l, int Nr, ff_pool *p)
+  {
+    p->map2(p, 0, Nr + 1, 0, Nr + 1, -1, Compute_new_P(), P, Pold, k, z, l);
   }
 };

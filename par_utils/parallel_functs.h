@@ -117,29 +117,29 @@ namespace plt = matplotlibcpp;
                                                                                           \
   cnt++;
 
-#define ff_pool_train_iteration()                                               \
-  /* compute rec and in parts of state update */                                \
-  p.parallel_matrix_dot_vector(0, Nr, 0, Nr, c_line_size / 4, W, x_old, x_rec); \
-  p.parallel_matrix_dot_vector(0, Nr, 0, Nu, c_line_size / 4, Win, u, x_in);    \
-                                                                                \
-  /* compute tanh(sum...)*/                                                     \
-  p.map1(0, Nr, Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);             \
-                                                                                \
-  /* z = P|x*/                                                                  \
-  p.parallel_matrix_dot_vector(0, Nr + 1, 0, Nr + 1, c_line_size / 4, P, x, z); \
-                                                                                \
-  /* k_den = x.T | z , y = Wout|x*/                                             \
-  p.parallel_matrix_dot_vector(0, Ny, 0, Nr + 1, c_line_size / 4, Wout, x, y);  \
-  p.submit({new Dot_task(0, Nr + 1, 0, &x, z, &k_den)});                        \
-                                                                                \
-  k_den += l;                                                                   \
-                                                                                \
-  /* k = z/k_den*/                                                              \
-  p.map1(0, Nr + 1, Divide_by_const(), z, k_den, k);                            \
-                                                                                \
-  /* Wold = .... ,  P = ...*/                                                   \
-  p.map2(0, Ny, 0, Nr + 1, -1, Compute_new_Wout(), Wout, Wold, d, y, k);        \
-  p.map2(0, Nr + 1, 0, Nr + 1, -1, Compute_new_P(), P, Pold, k, z, l);
+#define ff_pool_train_iteration()                                                          \
+  /* compute rec and in parts of state update */                                           \
+  ff_pool::parallel_matrix_dot_vector(&p, 0, Nr, 0, Nr, c_line_size / 4, W, x_old, x_rec); \
+  ff_pool::parallel_matrix_dot_vector(&p, 0, Nr, 0, Nu, c_line_size / 4, Win, u, x_in);    \
+                                                                                           \
+  /* compute tanh(sum...)*/                                                                \
+  ff_pool::comp_state(Nr, Nu, x, x_rec, x_in, Win, x_old, &p);                             \
+                                                                                           \
+  /* z = P|x*/                                                                             \
+  ff_pool::parallel_matrix_dot_vector(&p, 0, Nr + 1, 0, Nr + 1, c_line_size / 4, P, x, z); \
+                                                                                           \
+  /* k_den = x.T | z , y = Wout|x*/                                                        \
+  ff_pool::parallel_matrix_dot_vector(&p, 0, Ny, 0, Nr + 1, c_line_size / 4, Wout, x, y);  \
+  p.submit({new Dot_task(0, Nr + 1, 0, &x, z, &k_den)});                                   \
+                                                                                           \
+  k_den += l;                                                                              \
+                                                                                           \
+  /* k = z/k_den*/                                                                         \
+  ff_pool::div_by_const(k, z, k_den, Nr + 1, &p);                                          \
+                                                                                           \
+  /* Wold = .... ,  P = ...*/                                                              \
+  ff_pool::compute_new_wout(Wout, d, y, k, Wold, Nr, Ny, &p);                              \
+  ff_pool::compute_new_P(P, Pold, k, z, l, Nr, &p);
 
 template <typename T>
 struct Parameters
@@ -149,14 +149,14 @@ struct Parameters
   float **W, **Win, **Wout, **Wold, **P, **Pold;
   float *x, *x_rec, *x_in, *x_old, *u, *d, *k, *z, *y;
   T *mdf;
-  ff_pool* p;
+  ff_pool *p;
 };
 
 // istanzia DAG di una iterazione, sottopone le task. il risultato dell' operazione lo deposita in appsito puntatore
 void taskGen(Parameters<ff::ff_mdf> *const Par)
 {
   ff::ff_mdf *mdf = Par->mdf;
-  ff_pool* p = Par->p;
+  ff_pool *p = Par->p;
 
   int Nr, Nu, Ny, par_degree;
   float **W, **Win, **Wout, **Wold, **P, **Pold;
@@ -205,7 +205,7 @@ vector<double> par_train(string ff, int par_degree, int c_line_size, int n_sampl
 
   if (ff == "none")
   {
-    std::cout<<"doing with none"<<std::endl;
+    std::cout << "doing with none" << std::endl;
     Pool p(par_degree);
     while (cnt < n_samples)
     {
@@ -216,7 +216,7 @@ vector<double> par_train(string ff, int par_degree, int c_line_size, int n_sampl
   }
   else if (ff == "parfor")
   {
-    std::cout<<"doing with parfor"<<std::endl;
+    std::cout << "doing with parfor" << std::endl;
     ff::ParallelFor p(par_degree);
     while (cnt < n_samples)
     {
@@ -227,7 +227,7 @@ vector<double> par_train(string ff, int par_degree, int c_line_size, int n_sampl
   }
   else if (ff == "ff_pool")
   {
-    std::cout<<"doing with ff_pool"<<std::endl;
+    std::cout << "doing with ff_pool" << std::endl;
     ff_pool p(par_degree);
     while (cnt < n_samples)
     {
@@ -238,10 +238,10 @@ vector<double> par_train(string ff, int par_degree, int c_line_size, int n_sampl
   }
   else if (ff == "mdf")
   {
-    std::cout<<"doing with mdf"<<std::endl;
+    std::cout << "doing with mdf" << std::endl;
     // data structure that contains data used by the DAG
     Parameters<ff::ff_mdf> Par;
-    
+
     // thread pool that will be orchestrated by the mdf
     ff_pool p(par_degree);
     Par.p = &p;
