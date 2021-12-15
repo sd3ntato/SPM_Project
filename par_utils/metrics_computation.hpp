@@ -14,7 +14,6 @@
 
 using namespace std;
 
-
 /************* FUNCTIONS TO COMPUTE OBSERVED METRICS *********************/
 
 vector<double> compute_average_times(string ff, int Nr, int n_samples, int n_trials, int max_par_degree, int c_line_size, Matrix_wrapper dataset, Matrix_wrapper dataset_n, float **W, float **Win,
@@ -36,14 +35,7 @@ vector<double> compute_average_times(string ff, int Nr, int n_samples, int n_tri
       for (int i = 0; i < n_trials; i++)
       {
         utimer t(to_string(par_deg), &ts[i]);
-        if (ff == "parfor")
-          err = par_train_ff(par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
-        if (ff == "mdf")
-          err = par_train_mdf(par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
-        if (ff == "none")
-          err = par_train(par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
-        if (ff == "ff_pool")
-          err = par_train_ffPool(par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
+        err = par_train(ff, par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
         plt::plot(err);
         plt::title("err with " + to_string(Nr) + " neurons and par deg " + to_string(par_deg));
         plt::save("imgs/" + to_string(Nr) + "-" + to_string(par_deg) + "-err");

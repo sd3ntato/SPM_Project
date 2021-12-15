@@ -43,98 +43,103 @@ namespace plt = matplotlibcpp;
 
 #include "math.h"
 
-vector<double> par_train(int par_degree, int c_line_size, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
-                         int Nr, int Nu, int Ny, float nabla, float l,
-                         float **W, float **Win, float **Wout, float **Wold, float **P, float **Pold,
-                         float *x, float *x_rec, float *x_in, float *x_old, float *k, float *z, float *y)
-{
+#define train_iteration_pool()                                                  \
+  /* compute rec and in parts of state update */                                \
+  p.parallel_matrix_dot_vector(0, Nr, 0, Nr, c_line_size / 4, W, x_old, x_rec); \
+  p.parallel_matrix_dot_vector(0, Nr, 0, Nu, c_line_size / 4, Win, u, x_in);    \
+  p.barrier();                                                                  \
+                                                                                \
+  /* compute tanh(sum...) */                                                    \
+  p.map1(0, Nr, Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);             \
+  p.barrier();                                                                  \
+                                                                                \
+  /* z = P|x */                                                                 \
+  p.parallel_matrix_dot_vector(0, Nr + 1, 0, Nr + 1, c_line_size / 4, P, x, z); \
+  p.barrier();                                                                  \
+                                                                                \
+  /* k_den = x.T | z , y = Wout|x */                                            \
+  p.parallel_matrix_dot_vector(0, Ny, 0, Nr + 1, c_line_size / 4, Wout, x, y);  \
+  p.submit({new Dot_task(0, Nr + 1, 0, &x, z, &k_den)});                        \
+  p.barrier();                                                                  \
+                                                                                \
+  k_den += l;                                                                   \
+                                                                                \
+  /* k = z/k_den */                                                             \
+  p.map1(0, Nr + 1, Divide_by_const(), z, k_den, k);                            \
+  p.barrier();                                                                  \
+                                                                                \
+  /* Wold = .... ,  P = ... */                                                  \
+  p.map2(0, Ny, 0, Nr + 1, -1, Compute_new_Wout(), Wout, Wold, d, y, k);        \
+  p.map2(0, Nr + 1, 0, Nr + 1, -1, Compute_new_P(), P, Pold, k, z, l);          \
+  p.barrier();
 
-  init_train_loop();
+#define train_iteration_parfor()                                    \
+  /* compute rec and in parts of state update */                    \
+  /* x_rec = W x_old, x_in = Win u */                               \
+  parallel_matrix_dot_vector_ff(0, Nr, 0, Nr, &p, W, x_old, x_rec); \
+  parallel_matrix_dot_vector_ff(0, Nr, 0, Nu, &p, Win, u, x_in);    \
+                                                                    \
+  /* compute tanh(sum...) */                                        \
+  comp_state_ff(Nr, Nu, x, x_rec, x_in, Win, x_old, &p);            \
+                                                                    \
+  /* z = P|x */                                                     \
+  parallel_matrix_dot_vector_ff(0, Nr + 1, 0, Nr + 1, &p, P, x, z); \
+                                                                    \
+  /* k_den = x.T | z , y = Wout|x */                                \
+  parallel_matrix_dot_vector_ff(0, Ny, 0, Nr + 1, &p, Wout, x, y);  \
+  k_den = dot(0, Nr + 1, x, z);                                     \
+  k_den += l;                                                       \
+                                                                    \
+  /* k = z/k_den */                                                 \
+  divide_by_const_ff(k, z, k_den, Nr, &p);                          \
+                                                                    \
+  /* Wold = .... ,  P = ... */                                      \
+  compute_new_Wout_ff(Wout, d, y, k, Wold, Nr, Ny, &p);             \
+  compute_new_P_ff(P, Pold, k, z, l, Nr, &p);
 
-  Pool p(par_degree);
+#define mdf_train_iteration()                                                             \
+  /* mdf obj */                                                                           \
+  ff::ff_mdf mdf(taskGen, &Par, 8192, 3);                                                 \
+                                                                                          \
+  /* deposit input into parameters structure */                                           \
+  Par.mdf = &mdf;                                                                         \
+  Par.u = dataset_n.m[cnt];                                                               \
+  Par.d = dataset.m[cnt + 1];                                                             \
+                                                                                          \
+  /* make the mdf run, it will use the given input to modify its data during execution */ \
+  mdf.run_and_wait_end(); /* computes an iteration */                                     \
+  /* mdf executes and deposits values into the float*s, so */                             \
+  /* after execution, e.g. y contains the output of the */                                \
+  /* network at the end of the iteration */                                               \
+                                                                                          \
+  s = compute_error(Par.d, Par.y, Ny);                                                    \
+  error_norms.push_back(sqrt(s));                                                         \
+                                                                                          \
+  cnt++;
 
-  while (cnt < n_samples)
-  {
-
-    init_train_iteration();
-
-    // compute rec and in parts of state update
-    p.parallel_matrix_dot_vector(0, Nr, 0, Nr, c_line_size / 4, W, x_old, x_rec);
-    p.parallel_matrix_dot_vector(0, Nr, 0, Nu, c_line_size / 4, Win, u, x_in);
-    p.barrier();
-
-    // compute tanh(sum...)
-    p.map1(0, Nr, Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);
-    p.barrier();
-
-    // z = P|x
-    p.parallel_matrix_dot_vector(0, Nr + 1, 0, Nr + 1, c_line_size / 4, P, x, z);
-    p.barrier();
-
-    // k_den = x.T | z , y = Wout|x
-    p.parallel_matrix_dot_vector(0, Ny, 0, Nr + 1, c_line_size / 4, Wout, x, y);
-    p.submit({new Dot_task(0, Nr + 1, 0, &x, z, &k_den)});
-    p.barrier();
-
-    k_den += l;
-
-    // k = z/k_den
-    p.map1(0, Nr + 1, Divide_by_const(), z, k_den, k);
-    p.barrier();
-
-    // Wold = .... ,  P = ...
-    p.map2(0, Ny, 0, Nr + 1, -1, Compute_new_Wout(), Wout, Wold, d, y, k);
-    p.map2(0, Nr + 1, 0, Nr + 1, -1, Compute_new_P(), P, Pold, k, z, l);
-    p.barrier();
-
-    end_train_iteration();
-  }
-  return error_norms;
-}
-
-vector<double> par_train_ff(int par_degree, int c_line_size, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
-                            int Nr, int Nu, int Ny, float nabla, float l,
-                            float **W, float **Win, float **Wout, float **Wold, float **P, float **Pold,
-                            float *x, float *x_rec, float *x_in, float *x_old, float *k, float *z, float *y)
-{
-
-  init_train_loop();
-
-  ff::ParallelFor p(par_degree);
-
-  while (cnt < n_samples)
-  {
-
-    init_train_iteration();
-
-    // compute rec and in parts of state update
-    // x_rec = W x_old, x_in = Win u
-    parallel_matrix_dot_vector_ff(0, Nr, 0, Nr, &p, W, x_old, x_rec);
-    parallel_matrix_dot_vector_ff(0, Nr, 0, Nu, &p, Win, u, x_in);
-
-    // compute tanh(sum...)
-    comp_state_ff(Nr, Nu, x, x_rec, x_in, Win, x_old, &p);
-
-    // z = P|x
-    parallel_matrix_dot_vector_ff(0, Nr + 1, 0, Nr + 1, &p, P, x, z);
-
-    // k_den = x.T | z , y = Wout|x
-    parallel_matrix_dot_vector_ff(0, Ny, 0, Nr + 1, &p, Wout, x, y);
-    k_den = dot(0, Nr + 1, x, z);
-    k_den += l;
-
-    // k = z/k_den
-    divide_by_const_ff(k, z, k_den, Nr, &p);
-
-    // Wold = .... ,  P = ...
-    compute_new_Wout_ff(Wout, d, y, k, Wold, Nr, Ny, &p);
-
-    compute_new_P_ff(P, Pold, k, z, l, Nr, &p);
-
-    end_train_iteration();
-  }
-  return error_norms;
-}
+#define ff_pool_train_iteration()                                               \
+  /* compute rec and in parts of state update */                                \
+  p.parallel_matrix_dot_vector(0, Nr, 0, Nr, c_line_size / 4, W, x_old, x_rec); \
+  p.parallel_matrix_dot_vector(0, Nr, 0, Nu, c_line_size / 4, Win, u, x_in);    \
+                                                                                \
+  /* compute tanh(sum...)*/                                                     \
+  p.map1(0, Nr, Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);             \
+                                                                                \
+  /* z = P|x*/                                                                  \
+  p.parallel_matrix_dot_vector(0, Nr + 1, 0, Nr + 1, c_line_size / 4, P, x, z); \
+                                                                                \
+  /* k_den = x.T | z , y = Wout|x*/                                             \
+  p.parallel_matrix_dot_vector(0, Ny, 0, Nr + 1, c_line_size / 4, Wout, x, y);  \
+  p.submit({new Dot_task(0, Nr + 1, 0, &x, z, &k_den)});                        \
+                                                                                \
+  k_den += l;                                                                   \
+                                                                                \
+  /* k = z/k_den*/                                                              \
+  p.map1(0, Nr + 1, Divide_by_const(), z, k_den, k);                            \
+                                                                                \
+  /* Wold = .... ,  P = ...*/                                                   \
+  p.map2(0, Ny, 0, Nr + 1, -1, Compute_new_Wout(), Wout, Wold, d, y, k);        \
+  p.map2(0, Nr + 1, 0, Nr + 1, -1, Compute_new_P(), P, Pold, k, z, l);
 
 template <typename T>
 struct Parameters
@@ -196,44 +201,7 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
   mdf_submit_compute_new_p(P, Pold, k, z, l, Nr, ptr_p8);
 }
 
-vector<double> par_train_mdf(int par_degree, int c_line_size, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
-                             int Nr, int Nu, int Ny, float nabla, float l,
-                             float **W, float **Win, float **Wout, float **Wold, float **P, float **Pold,
-                             float *x, float *x_rec, float *x_in, float *x_old, float *k, float *z, float *y)
-{
-
-  init_train_loop();
-
-  // data structure that contains data used by the DAG
-  Parameters<ff::ff_mdf> Par;
-  // fill up parameters int Par strurcture
-  pack_values(Par);
-
-  while (cnt < n_samples)
-  {
-    // mdf obj
-    ff::ff_mdf mdf(taskGen, &Par, 8192, 3);
-
-    // deposit input into parameters structure
-    Par.mdf = &mdf;
-    Par.u = dataset_n.m[cnt];
-    Par.d = dataset.m[cnt + 1];
-
-    // make the mdf run, it will use the given input to modify its data during execution
-    mdf.run_and_wait_end(); // computes an iteration
-    // mdf executes and deposits values into the float*s, so
-    // after execution, e.g. y contains the output of the
-    // network at the end of the iteration
-
-    s = compute_error(Par.d, Par.y, Ny);
-    error_norms.push_back(sqrt(s));
-
-    cnt++;
-  }
-  return error_norms;
-}
-
-vector<double> par_train_ffPool(int par_degree, int c_line_size, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
+vector<double> par_train(string ff, int par_degree, int c_line_size, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
                          int Nr, int Nu, int Ny, float nabla, float l,
                          float **W, float **Win, float **Wout, float **Wold, float **P, float **Pold,
                          float *x, float *x_rec, float *x_in, float *x_old, float *k, float *z, float *y)
@@ -241,37 +209,51 @@ vector<double> par_train_ffPool(int par_degree, int c_line_size, int n_samples, 
 
   init_train_loop();
 
-  ff_pool p(par_degree);
-
-  while (cnt < n_samples)
+  if (ff == "none")
   {
-
-    init_train_iteration();
-
-    // compute rec and in parts of state update
-    p.parallel_matrix_dot_vector(0, Nr, 0, Nr, c_line_size / 4, W, x_old, x_rec);
-    p.parallel_matrix_dot_vector(0, Nr, 0, Nu, c_line_size / 4, Win, u, x_in);
-
-    // compute tanh(sum...)
-    p.map1(0, Nr, Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);
-
-    // z = P|x
-    p.parallel_matrix_dot_vector(0, Nr + 1, 0, Nr + 1, c_line_size / 4, P, x, z);
-
-    // k_den = x.T | z , y = Wout|x
-    p.parallel_matrix_dot_vector(0, Ny, 0, Nr + 1, c_line_size / 4, Wout, x, y);
-    p.submit({new Dot_task(0, Nr + 1, 0, &x, z, &k_den)});
-
-    k_den += l;
-
-    // k = z/k_den
-    p.map1(0, Nr + 1, Divide_by_const(), z, k_den, k);
-
-    // Wold = .... ,  P = ...
-    p.map2(0, Ny, 0, Nr + 1, -1, Compute_new_Wout(), Wout, Wold, d, y, k);
-    p.map2(0, Nr + 1, 0, Nr + 1, -1, Compute_new_P(), P, Pold, k, z, l);
-
-    end_train_iteration();
+    std::cout<<"doing with none"<<std::endl;
+    Pool p(par_degree);
+    while (cnt < n_samples)
+    {
+      init_train_iteration();
+      train_iteration_pool();
+      end_train_iteration();
+    }
   }
+  else if (ff == "parfor")
+  {
+    std::cout<<"doing with parfor"<<std::endl;
+    ff::ParallelFor p(par_degree);
+    while (cnt < n_samples)
+    {
+      init_train_iteration();
+      train_iteration_parfor();
+      end_train_iteration();
+    }
+  }
+  else if (ff == "ff_pool")
+  {
+    std::cout<<"doing with ff_pool"<<std::endl;
+    ff_pool p(par_degree);
+    while (cnt < n_samples)
+    {
+      init_train_iteration();
+      ff_pool_train_iteration();
+      end_train_iteration();
+    }
+  }
+  else if (ff == "mdf")
+  {
+    std::cout<<"doing with mdf"<<std::endl;
+    // data structure that contains data used by the DAG
+    Parameters<ff::ff_mdf> Par;
+    // fill up parameters int Par strurcture
+    pack_values(Par);
+    while (cnt < n_samples)
+    {
+      mdf_train_iteration();
+    }
+  }
+
   return error_norms;
 }
