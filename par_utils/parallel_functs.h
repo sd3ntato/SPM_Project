@@ -149,12 +149,14 @@ struct Parameters
   float **W, **Win, **Wout, **Wold, **P, **Pold;
   float *x, *x_rec, *x_in, *x_old, *u, *d, *k, *z, *y;
   T *mdf;
+  ff_pool* p;
 };
 
 // istanzia DAG di una iterazione, sottopone le task. il risultato dell' operazione lo deposita in appsito puntatore
 void taskGen(Parameters<ff::ff_mdf> *const Par)
 {
   ff::ff_mdf *mdf = Par->mdf;
+  ff_pool* p = Par->p;
 
   int Nr, Nu, Ny, par_degree;
   float **W, **Win, **Wout, **Wold, **P, **Pold;
@@ -165,28 +167,24 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
   const int c0 = 0;
 
   // x_rec = W | x_old
-  ff::ParallelFor *ptr_p1 = new ff::ParallelFor(par_degree);
-  mdf_submit_matrix_dot_vector(mdf, Param, ptr_p1, c0, Nr, c0, Nr, W, x_old, x_rec);
+  mdf_submit_matrix_dot_vector(mdf, Param, p, c0, Nr, c0, Nr, W, x_old, x_rec);
   //cout << "generated W xold" << endl << flush;
 
   // x_in = Win | u
-  ff::ParallelFor *ptr_p2 = new ff::ParallelFor(par_degree);
-  mdf_submit_matrix_dot_vector(mdf, Param, ptr_p2, c0, Nr, c0, Nu, Win, u, x_in);
+  mdf_submit_matrix_dot_vector(mdf, Param, p, c0, Nr, c0, Nu, Win, u, x_in);
 
   // compute tanh(sum...)
   ff::ParallelFor *ptr_p3 = new ff::ParallelFor(par_degree);
   mdf_submit_compute_state_state_task(mdf, Param, ptr_p3, Nr, Nu, x, x_rec, x_in, Win, x_old);
 
   // z = P|x
-  ff::ParallelFor *ptr_p4 = new ff::ParallelFor(par_degree);
-  mdf_submit_matrix_dot_vector(mdf, Param, ptr_p4, c0, Nr, c0, Nr, P, x, z);
+  mdf_submit_matrix_dot_vector(mdf, Param, p, c0, Nr, c0, Nr, P, x, z);
 
   // k_den = x.T | z
   mdf_submit_vector_dot_vector_task(mdf, Param, c0, Nr + 1, x, z, k_den);
 
   //y = Wout|x
-  ff::ParallelFor *ptr_p5 = new ff::ParallelFor(par_degree);
-  mdf_submit_matrix_dot_vector(mdf, Param, ptr_p5, c0, Ny, c0, Nr + 1, Wout, x, y);
+  mdf_submit_matrix_dot_vector(mdf, Param, p, c0, Ny, c0, Nr + 1, Wout, x, y);
 
   // k = z/k_den
   ff::ParallelFor *ptr_p6 = new ff::ParallelFor(par_degree);
@@ -247,7 +245,12 @@ vector<double> par_train(string ff, int par_degree, int c_line_size, int n_sampl
     std::cout<<"doing with mdf"<<std::endl;
     // data structure that contains data used by the DAG
     Parameters<ff::ff_mdf> Par;
-    // fill up parameters int Par strurcture
+    
+    // thread pool that will be orchestrated by the mdf
+    ff_pool* p = new ff_pool(par_degree);
+    Par.p = p;
+
+    // fill up other parameters in Par strurcture
     pack_values(Par);
     while (cnt < n_samples)
     {

@@ -12,6 +12,16 @@
 #include <ff/parallel_for.hpp>
 #endif
 
+#ifndef ff_pool_h
+#define ff_pool_h
+#include "ff_Pool.hpp"
+#endif
+
+#ifndef basic_calculations_h
+#define basic_calculations_h
+#include "basic_calculations.hpp"
+#endif
+
 namespace plt = matplotlibcpp;
 using namespace std;
 
@@ -38,7 +48,6 @@ void plot(vector<int> Nrs, vector<double> *v, string s, int n_trials, bool ff)
   }
   //plt::show();
 }
-
 
 /************* PURE COMMON TEXT *********************/
 
@@ -95,40 +104,7 @@ float compute_error(float *d, float *y, int Ny)
   return s;
 }
 
-/************* STANDARDIZED CALCULATIONS *********************/
-
-#define comp_state_i(x, x_rec, x_in, x_old, Win, Nu, i) \
-  {                                                     \
-    x[i] = tanh(x_rec[i] + x_in[i] + Win[i][Nu]);       \
-    x_old[i] = x[i];                                    \
-  }
-
-#define divide_by_const(r, v, k, i) \
-  {                                 \
-    r[i] = (v[i] / k);              \
-  }
-
-#define compute_line_of_wout(start, stop, Wout, Wold, d, y, k, i) \
-  {                                                               \
-    for (int j = start; j < stop; j++)                            \
-    {                                                             \
-      Wout[i][j] = Wold[i][j] + (d[i] - y[i]) * k[j];             \
-      Wold[i][j] = Wout[i][j];                                    \
-    }                                                             \
-  }
-
-#define compute_line_of_P(start, stop, P, Pold, k, z, l, i) \
-  {                                                         \
-    for (int j = start; j < stop; j++)                      \
-    {                                                       \
-      P[i][j] = (Pold[i][j] - k[i] * z[j]) * 1 / l;         \
-      Pold[i][j] = P[i][j];                                 \
-    }                                                       \
-  }
-
-
 /************* FUNCTIONS FOR FF_PARFOR COMPUTATION *********************/
-
 
 void parallel_matrix_dot_vector_ff(int row_start, int row_stop, int col_start, int col_stop, ff::ParallelFor *p, float **M, float *v, float *r)
 {
@@ -177,29 +153,33 @@ void compute_new_P_ff(float **P, float **Pold, float *k, float *z, float l, int 
 
 /************* MACROS FOR MDF CALCULATIONS *********************/
 
+void ff_pool_matrix_dot_vector(ff_pool* p, int row_start, int row_stop, int col_start, int col_stop, int diff, float **M, float *v, float *r)
+{
+  p->parallel_matrix_dot_vector(row_start, row_stop, col_start, col_stop, diff, M, v, r);
+}
 
-#define mdf_submit_matrix_dot_vector(mdf, Param, ptr_p, row_start, row_stop, col_start, col_stop, M, v, r)          \
-  {                                                                                                                 \
-    {                                                                                                               \
-      Param.clear();                                                                                                \
-      const ff::param_info _1 = {(uintptr_t)&row_start, ff::INPUT};                                                 \
-      const ff::param_info _2 = {(uintptr_t)&row_stop, ff::INPUT};                                                  \
-      const ff::param_info _3 = {(uintptr_t)&col_start, ff::INPUT};                                                 \
-      const ff::param_info _4 = {(uintptr_t)&col_stop, ff::INPUT};                                                  \
-      const ff::param_info _5 = {(uintptr_t)&ptr_p, ff::INPUT};                                                     \
-      const ff::param_info _6 = {(uintptr_t)&M, ff::INPUT};                                                         \
-      const ff::param_info _7 = {(uintptr_t)&v, ff::INPUT};                                                         \
-      const ff::param_info _8 = {(uintptr_t)&r, ff::OUTPUT};                                                        \
-      Param.push_back(_1);                                                                                          \
-      Param.push_back(_2);                                                                                          \
-      Param.push_back(_3);                                                                                          \
-      Param.push_back(_4);                                                                                          \
-      Param.push_back(_5);                                                                                          \
-      Param.push_back(_6);                                                                                          \
-      Param.push_back(_7);                                                                                          \
-      Param.push_back(_8);                                                                                          \
-      mdf->AddTask(Param, parallel_matrix_dot_vector_ff, row_start, row_stop, col_start, col_stop, ptr_p, M, v, r); \
-    }                                                                                                               \
+#define mdf_submit_matrix_dot_vector(mdf, Param, p, row_start, row_stop, col_start, col_stop, M, v, r)          \
+  {                                                                                                             \
+    {                                                                                                           \
+      Param.clear();                                                                                            \
+      const ff::param_info _1 = {(uintptr_t)&row_start, ff::INPUT};                                             \
+      const ff::param_info _2 = {(uintptr_t)&row_stop, ff::INPUT};                                              \
+      const ff::param_info _3 = {(uintptr_t)&col_start, ff::INPUT};                                             \
+      const ff::param_info _4 = {(uintptr_t)&col_stop, ff::INPUT};                                              \
+      const ff::param_info _5 = {(uintptr_t)&p, ff::INPUT};                                                     \
+      const ff::param_info _6 = {(uintptr_t)&M, ff::INPUT};                                                     \
+      const ff::param_info _7 = {(uintptr_t)&v, ff::INPUT};                                                     \
+      const ff::param_info _8 = {(uintptr_t)&r, ff::OUTPUT};                                                    \
+      Param.push_back(_1);                                                                                      \
+      Param.push_back(_2);                                                                                      \
+      Param.push_back(_3);                                                                                      \
+      Param.push_back(_4);                                                                                      \
+      Param.push_back(_5);                                                                                      \
+      Param.push_back(_6);                                                                                      \
+      Param.push_back(_7);                                                                                      \
+      Param.push_back(_8);                                                                                      \
+      mdf->AddTask(Param, ff_pool_matrix_dot_vector, p, row_start, row_stop, col_start, col_stop, -1, M, v, r); \
+    }                                                                                                           \
   }
 
 #define mdf_submit_compute_state_state_task(mdf, Param, ptr_p, Nr, Nu, x, x_rec, x_in, Win, x_old) \

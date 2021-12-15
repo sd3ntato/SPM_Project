@@ -3,9 +3,9 @@
 #include "linear_algebra.h"
 #endif
 
-#ifndef utils_h
-#define utils_h
-#include "utils.h"
+#ifndef basic_calculations_h
+#define basic_calculations_h
+#include "basic_calculations.hpp"
 #endif
 
 #include "math.h"
