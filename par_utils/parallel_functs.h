@@ -99,7 +99,7 @@ namespace plt = matplotlibcpp;
 
 #define mdf_train_iteration()                                                             \
   /* mdf obj */                                                                           \
-  ff::ff_mdf mdf(taskGen, &Par, 8192, 3);                                                 \
+  ff::ff_mdf mdf(taskGen, &Par, 8192, 1);                                                 \
                                                                                           \
   /* deposit input into parameters structure */                                           \
   Par.mdf = &mdf;                                                                         \
@@ -174,8 +174,7 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
   mdf_submit_matrix_dot_vector(mdf, Param, p, c0, Nr, c0, Nu, Win, u, x_in);
 
   // compute tanh(sum...)
-  ff::ParallelFor *ptr_p3 = new ff::ParallelFor(par_degree);
-  mdf_submit_compute_state_state_task(mdf, Param, ptr_p3, Nr, Nu, x, x_rec, x_in, Win, x_old);
+  mdf_submit_compute_state_state_task(mdf, Param, p, Nr, Nu, x, x_rec, x_in, Win, x_old);
 
   // z = P|x
   mdf_submit_matrix_dot_vector(mdf, Param, p, c0, Nr, c0, Nr, P, x, z);
@@ -187,16 +186,13 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
   mdf_submit_matrix_dot_vector(mdf, Param, p, c0, Ny, c0, Nr + 1, Wout, x, y);
 
   // k = z/k_den
-  ff::ParallelFor *ptr_p6 = new ff::ParallelFor(par_degree);
-  mdf_submit_divide_by_const(mdf, Param, ptr_p6, k, z, k_den, Nr);
+  mdf_submit_divide_by_const(mdf, Param, p, k, z, k_den, Nr);
 
   // Wout = ...
-  ff::ParallelFor *ptr_p7 = new ff::ParallelFor(par_degree);
-  mdf_subumit_compute_new_wout(Wout, d, y, k, Wold, Nr, Ny, ptr_p7);
+  mdf_submit_compute_new_wout(Wout, d, y, k, Wold, Nr, Ny, p);
 
   // P = ...
-  ff::ParallelFor *ptr_p8 = new ff::ParallelFor(par_degree);
-  mdf_submit_compute_new_p(P, Pold, k, z, l, Nr, ptr_p8);
+  mdf_submit_compute_new_p(P, Pold, k, z, l, Nr, p);
 }
 
 vector<double> par_train(string ff, int par_degree, int c_line_size, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
@@ -247,8 +243,8 @@ vector<double> par_train(string ff, int par_degree, int c_line_size, int n_sampl
     Parameters<ff::ff_mdf> Par;
     
     // thread pool that will be orchestrated by the mdf
-    ff_pool* p = new ff_pool(par_degree);
-    Par.p = p;
+    ff_pool p(par_degree);
+    Par.p = &p;
 
     // fill up other parameters in Par strurcture
     pack_values(Par);

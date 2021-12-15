@@ -170,4 +170,9 @@ struct ff_pool
   {
     this->map2(row_start, row_stop, col_start, col_stop, diff, Multiple_Dot_task(), M, v, r);
   }
+
+  static void static_parallel_matrix_dot_vector(ff_pool* p, int row_start, int row_stop, int col_start, int col_stop, int diff, float **M, float *v, float *r)
+  {
+    p->map2(row_start, row_stop, col_start, col_stop, diff, Multiple_Dot_task(), M, v, r);
+  }
 };
