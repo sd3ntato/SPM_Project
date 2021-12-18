@@ -173,21 +173,27 @@ struct ff_pool
 
   static void comp_state(int Nr, int Nu, float *x, float *x_rec, float *x_in, float **Win, float *x_old, ff_pool *p)
   {
-    p->map1(p, 0, Nr, Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);
+    ff_pool::map1(p, 0, Nr, Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);
   }
 
-  static void div_by_const(float *k, float *z, float k_den, int stop, ff_pool *p)
+  static void comp_k_den(int start, int stop, float *x, float *z, float *k_den, float l, ff_pool *p)
   {
-    p->map1(p, 0, stop, Divide_by_const(), z, k_den, k);
+    p->submit({new Dot_task(start, stop, 0, &x, z, k_den)});
+    *k_den += l;
+  }
+
+  static void div_by_const(float *k, float *z, float *k_den, int stop, ff_pool *p)
+  {
+    ff_pool::map1(p, 0, stop, Divide_by_const(), z, *k_den, k);
   }
 
   static void compute_new_wout(float **Wout, float *d, float *y, float *k, float **Wold, int Nr, int Ny, ff_pool *p)
   {
-    p->map2(p, 0, Ny, 0, Nr + 1, -1, Compute_new_Wout(), Wout, Wold, d, y, k);
+    ff_pool::map2(p, 0, Ny, 0, Nr + 1, -1, Compute_new_Wout(), Wout, Wold, d, y, k);
   }
 
   static void compute_new_P(float **P, float **Pold, float *k, float *z, float l, int Nr, ff_pool *p)
   {
-    p->map2(p, 0, Nr + 1, 0, Nr + 1, -1, Compute_new_P(), P, Pold, k, z, l);
+    ff_pool::map2(p, 0, Nr + 1, 0, Nr + 1, -1, Compute_new_P(), P, Pold, k, z, l);
   }
 };

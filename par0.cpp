@@ -87,7 +87,9 @@ int main()
     float *y = zeros(1, 4).m[0];
 
     times_for_each_Nr[i] = compute_average_times("mdf", Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
+    times_for_each_Nr[i] = compute_average_times("ff_pool", Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
 
+    /*
     double t0 = compute_sequential_time(Nr, n_samples, n_trials, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
     
     //without fastflow
@@ -98,7 +100,6 @@ int main()
 
     // with fastflow parallel_for
     times_for_each_Nr_ff[i] = compute_average_times("parfor", Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
-    /*
     speedups_for_each_Nr_ff[i] = compute_speedups(times_for_each_Nr_ff[i], t0);
     scalabilities_for_each_Nr_ff[i] = compute_scalabilities(times_for_each_Nr_ff[i]);
     efficiencies_for_each_Nr_ff[i] = compute_effieciencies(speedups_for_each_Nr_ff[i]);

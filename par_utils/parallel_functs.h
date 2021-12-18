@@ -99,7 +99,7 @@ namespace plt = matplotlibcpp;
 
 #define mdf_train_iteration()                                                             \
   /* mdf obj */                                                                           \
-  ff::ff_mdf mdf(taskGen, &Par, 8192, 1);                                                 \
+  ff::ff_mdf mdf(taskGen, &Par, 8192, 3);                                                 \
                                                                                           \
   /* deposit input into parameters structure */                                           \
   Par.mdf = &mdf;                                                                         \
@@ -130,12 +130,10 @@ namespace plt = matplotlibcpp;
                                                                                            \
   /* k_den = x.T | z , y = Wout|x*/                                                        \
   ff_pool::parallel_matrix_dot_vector(&p, 0, Ny, 0, Nr + 1, c_line_size / 4, Wout, x, y);  \
-  p.submit({new Dot_task(0, Nr + 1, 0, &x, z, &k_den)});                                   \
-                                                                                           \
-  k_den += l;                                                                              \
+  ff_pool::comp_k_den(0, Nr + 1, x, z, &k_den, l, &p);                                     \
                                                                                            \
   /* k = z/k_den*/                                                                         \
-  ff_pool::div_by_const(k, z, k_den, Nr + 1, &p);                                          \
+  ff_pool::div_by_const(k, z, &k_den, Nr + 1, &p);                                         \
                                                                                            \
   /* Wold = .... ,  P = ...*/                                                              \
   ff_pool::compute_new_wout(Wout, d, y, k, Wold, Nr, Ny, &p);                              \
@@ -162,13 +160,13 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
   float **W, **Win, **Wout, **Wold, **P, **Pold;
   float *x, *x_rec, *x_in, *x_old, *u, *d, *k, *z, *y, l, k_den;
   unpack_values(Par);
+  int Nrp1 = Nr + 1;
 
   std::vector<ff::param_info> Param;
   const int c0 = 0;
 
   // x_rec = W | x_old
   mdf_submit_matrix_dot_vector(mdf, Param, p, c0, Nr, c0, Nr, W, x_old, x_rec);
-  //cout << "generated W xold" << endl << flush;
 
   // x_in = Win | u
   mdf_submit_matrix_dot_vector(mdf, Param, p, c0, Nr, c0, Nu, Win, u, x_in);
@@ -177,16 +175,19 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
   mdf_submit_compute_state_state_task(mdf, Param, p, Nr, Nu, x, x_rec, x_in, Win, x_old);
 
   // z = P|x
-  mdf_submit_matrix_dot_vector(mdf, Param, p, c0, Nr, c0, Nr, P, x, z);
+  mdf_submit_matrix_dot_vector(mdf, Param, p, c0, Nrp1, c0, Nrp1, P, x, z);
 
   // k_den = x.T | z
-  mdf_submit_vector_dot_vector_task(mdf, Param, c0, Nr + 1, x, z, k_den);
+  float *k_den_ptr = &k_den;
+  mdf_submit_comp_k_den(mdf, Param, p, c0, Nrp1, x, z, k_den_ptr, l);
+  //k_den = dot(0, Nr + 1, x, z);
+  //k_den += l;
 
   //y = Wout|x
-  mdf_submit_matrix_dot_vector(mdf, Param, p, c0, Ny, c0, Nr + 1, Wout, x, y);
+  mdf_submit_matrix_dot_vector(mdf, Param, p, c0, Ny, c0, Nrp1, Wout, x, y);
 
   // k = z/k_den
-  mdf_submit_divide_by_const(mdf, Param, p, k, z, k_den, Nr);
+  mdf_submit_divide_by_const(mdf, Param, p, k, z, k_den_ptr, Nrp1);
 
   // Wout = ...
   mdf_submit_compute_new_wout(Wout, d, y, k, Wold, Nr, Ny, p);

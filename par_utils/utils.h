@@ -173,7 +173,7 @@ void compute_new_P_ff(float **P, float **Pold, float *k, float *z, float l, int 
       Param.push_back(_6);                                                                                                \
       Param.push_back(_7);                                                                                                \
       Param.push_back(_8);                                                                                                \
-      mdf->AddTask(Param, ff_pool::parallel_matrix_dot_vector, p, row_start, row_stop, col_start, col_stop, 32, M, v, r); \
+      mdf->AddTask(Param, ff_pool::parallel_matrix_dot_vector, p, row_start, row_stop, col_start, col_stop, -1, M, v, r); \
     }                                                                                                                     \
   }
 
@@ -201,40 +201,44 @@ void compute_new_P_ff(float **P, float **Pold, float *k, float *z, float l, int 
     }                                                                                          \
   }
 
-#define mdf_submit_vector_dot_vector_task(mdf, Param, start, stop, v1, v2, r) \
-  {                                                                           \
-    {                                                                         \
-      Param.clear();                                                          \
-      const ff::param_info _1 = {(uintptr_t)&start, ff::INPUT};               \
-      const ff::param_info _2 = {(uintptr_t)&stop, ff::INPUT};                \
-      const ff::param_info _3 = {(uintptr_t)&v1, ff::INPUT};                  \
-      const ff::param_info _4 = {(uintptr_t)&v2, ff::INPUT};                  \
-      const ff::param_info _5 = {(uintptr_t)&r, ff::OUTPUT};                  \
-      Param.push_back(_1);                                                    \
-      Param.push_back(_2);                                                    \
-      Param.push_back(_3);                                                    \
-      Param.push_back(_4);                                                    \
-      Param.push_back(_5);                                                    \
-      mdf->AddTask(Param, dot_in_place, start, stop, v1, v2, &r);             \
-    }                                                                         \
+#define mdf_submit_comp_k_den(mdf, Param, p, start, stop, x, z, k_den_ptr, l)       \
+  {                                                                                 \
+    {                                                                               \
+      Param.clear();                                                                \
+      const ff::param_info _1 = {(uintptr_t)&start, ff::INPUT};                     \
+      const ff::param_info _2 = {(uintptr_t)&stop, ff::INPUT};                      \
+      const ff::param_info _3 = {(uintptr_t)&x, ff::INPUT};                         \
+      const ff::param_info _4 = {(uintptr_t)&z, ff::INPUT};                         \
+      const ff::param_info _5 = {(uintptr_t)&k_den_ptr, ff::OUTPUT};                \
+      const ff::param_info _6 = {(uintptr_t)&l, ff::INPUT};                         \
+      const ff::param_info _7 = {(uintptr_t)&p, ff::INPUT};                         \
+      Param.push_back(_1);                                                          \
+      Param.push_back(_2);                                                          \
+      Param.push_back(_3);                                                          \
+      Param.push_back(_4);                                                          \
+      Param.push_back(_5);                                                          \
+      Param.push_back(_6);                                                          \
+      Param.push_back(_7);                                                          \
+      mdf->AddTask(Param, ff_pool::comp_k_den, start, stop, x, z, k_den_ptr, l, p); \
+    }                                                                               \
   }
 
-#define mdf_submit_divide_by_const(mdf, Param, p, k, z, k_den, stop)    \
-  {                                                                     \
-    {                                                                   \
-      Param.clear();                                                    \
-      const ff::param_info _1 = {(uintptr_t)&k, ff::OUTPUT};            \
-      const ff::param_info _2 = {(uintptr_t)&z, ff::INPUT};             \
-      const ff::param_info _3 = {(uintptr_t)&k_den, ff::INPUT};         \
-      const ff::param_info _4 = {(uintptr_t)&stop, ff::INPUT};          \
-      const ff::param_info _5 = {(uintptr_t)&p, ff::INPUT};             \
-      Param.push_back(_1);                                              \
-      Param.push_back(_2);                                              \
-      Param.push_back(_3);                                              \
-      Param.push_back(_4);                                              \
-      Param.push_back(_5);                                              \
-      mdf->AddTask(Param, ff_pool::div_by_const, k, z, k_den, stop, p); \
-    }                                                                   \
+#define mdf_submit_divide_by_const(mdf, Param, p, k, z, k_den_ptr, stop)    \
+  {                                                                         \
+    {                                                                       \
+      Param.clear();                                                        \
+      const ff::param_info _1 = {(uintptr_t)&k, ff::OUTPUT};                \
+      const ff::param_info _2 = {(uintptr_t)&z, ff::INPUT};                 \
+      const ff::param_info _3 = {(uintptr_t)&k_den_ptr, ff::INPUT};         \
+      const ff::param_info _4 = {(uintptr_t)&stop, ff::INPUT};              \
+      const ff::param_info _5 = {(uintptr_t)&p, ff::INPUT};                 \
+      Param.push_back(_1);                                                  \
+      Param.push_back(_2);                                                  \
+      Param.push_back(_3);                                                  \
+      Param.push_back(_4);                                                  \
+      Param.push_back(_5);                                                  \
+      mdf->AddTask(Param, ff_pool::div_by_const, k, z, k_den_ptr, stop, p); \
+    }                                                                       \
   }
 
 #define mdf_submit_compute_new_wout(Wout, d, y, k, Wold, Nr, Ny, p)                   \
