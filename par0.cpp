@@ -46,7 +46,7 @@ using namespace std;
 
 int main()
 {
-  int n_samples = 10;
+  int n_samples = 500;
   int n_trials = 1;
   int c_line_size = 128;
   int max_par_degree = 10;
@@ -56,54 +56,28 @@ int main()
   Matrix_wrapper dataset_n = normalize(dataset);
   cout << "dataset read" << endl;
 
-  vector<int> Nrs = {1000};
-  vector<double> *times_for_each_Nr = new vector<double>[Nrs.size()];
-  vector<double> *speedups_for_each_Nr = new vector<double>[Nrs.size()];
-  vector<double> *scalabilities_for_each_Nr = new vector<double>[Nrs.size()];
-  vector<double> *efficiencies_for_each_Nr = new vector<double>[Nrs.size()];
-  vector<double> *times_for_each_Nr_ff = new vector<double>[Nrs.size()];
-  vector<double> *speedups_for_each_Nr_ff = new vector<double>[Nrs.size()];
-  vector<double> *scalabilities_for_each_Nr_ff = new vector<double>[Nrs.size()];
-  vector<double> *efficiencies_for_each_Nr_ff = new vector<double>[Nrs.size()];
+  vector<int> Nrs = { 1000 };
+
+  prepare_vectors_for_statistics();
+
   for (int i = 0; i < Nrs.size(); i++)
   {
+    declare_vectors_and_matrices();
 
-    int Nr = Nrs[i];
-    ESN n = ESN(Nr, 4, 4);
-    float **W = n.W.m;
-    float **Win = n.Win.m;
-    float **Wold = zeros(4, Nr + 1).m;
-    float **Wout = zeros(4, Nr + 1).m;
-    float **P = zeros(Nr + 1, Nr + 1).m;
-    float **Pold = zeros(Nr + 1, Nr + 1).m;
-
-    float *x = zeros(1, Nr + 1).m[0];
-    float *x_rec = zeros(1, Nr + 1).m[0];
-    float *x_in = zeros(1, Nr + 1).m[0];
-    float *x_old = zeros(1, Nr + 1).m[0];
-
-    float *k = zeros(1, Nr + 1).m[0];
-    float *z = zeros(1, Nr + 1).m[0];
-    float *y = zeros(1, 4).m[0];
-
-    times_for_each_Nr[i] = compute_average_times("mdf", Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
-    times_for_each_Nr[i] = compute_average_times("ff_pool", Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
-
-    /*
     double t0 = compute_sequential_time(Nr, n_samples, n_trials, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
     
-    //without fastflow
-    times_for_each_Nr[i] = compute_average_times("none", Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
-    speedups_for_each_Nr[i] = compute_speedups(times_for_each_Nr[i], t0);
-    scalabilities_for_each_Nr[i] = compute_scalabilities(times_for_each_Nr[i]);
-    efficiencies_for_each_Nr[i] = compute_effieciencies(speedups_for_each_Nr[i]);
-
+    //without fastflow (my pool)
+    compute_statistics("none", times_for_each_Nr, speedups_for_each_Nr, scalabilities_for_each_Nr, efficiencies_for_each_Nr);
+    
     // with fastflow parallel_for
-    times_for_each_Nr_ff[i] = compute_average_times("parfor", Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
-    speedups_for_each_Nr_ff[i] = compute_speedups(times_for_each_Nr_ff[i], t0);
-    scalabilities_for_each_Nr_ff[i] = compute_scalabilities(times_for_each_Nr_ff[i]);
-    efficiencies_for_each_Nr_ff[i] = compute_effieciencies(speedups_for_each_Nr_ff[i]);
-    */
+    compute_statistics("parfor", times_for_each_Nr_parfor, speedups_for_each_Nr_parfor, scalabilities_for_each_Nr_parfor, efficiencies_for_each_Nr_parfor);
+    
+    // with my implementation of pool in fastflow
+    compute_statistics("ff_pool", times_for_each_Nr_ff_pool, speedups_for_each_Nr_ff_pool, scalabilities_for_each_Nr_ff_pool, efficiencies_for_each_Nr_ff_pool);
+    
+    // with mdf model + ff_pool
+    compute_statistics("mdf", times_for_each_Nr_mdf, speedups_for_each_Nr_mdf, scalabilities_for_each_Nr_mdf, efficiencies_for_each_Nr_mdf);
+    
   }
 
   /*

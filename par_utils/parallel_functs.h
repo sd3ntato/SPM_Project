@@ -180,8 +180,6 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
   // k_den = x.T | z
   float *k_den_ptr = &k_den;
   mdf_submit_comp_k_den(mdf, Param, p, c0, Nrp1, x, z, k_den_ptr, l);
-  //k_den = dot(0, Nr + 1, x, z);
-  //k_den += l;
 
   //y = Wout|x
   mdf_submit_matrix_dot_vector(mdf, Param, p, c0, Ny, c0, Nrp1, Wout, x, y);

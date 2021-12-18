@@ -14,6 +14,33 @@
 
 using namespace std;
 
+#define prepare_vectors_for_statistics()                                              \
+  vector<double> *times_for_each_Nr = new vector<double>[Nrs.size()];                 \
+  vector<double> *speedups_for_each_Nr = new vector<double>[Nrs.size()];              \
+  vector<double> *scalabilities_for_each_Nr = new vector<double>[Nrs.size()];         \
+  vector<double> *efficiencies_for_each_Nr = new vector<double>[Nrs.size()];          \
+                                                                                      \
+  vector<double> *times_for_each_Nr_parfor = new vector<double>[Nrs.size()];          \
+  vector<double> *speedups_for_each_Nr_parfor = new vector<double>[Nrs.size()];       \
+  vector<double> *scalabilities_for_each_Nr_parfor = new vector<double>[Nrs.size()];  \
+  vector<double> *efficiencies_for_each_Nr_parfor = new vector<double>[Nrs.size()];   \
+                                                                                      \
+  vector<double> *times_for_each_Nr_ff_pool = new vector<double>[Nrs.size()];         \
+  vector<double> *speedups_for_each_Nr_ff_pool = new vector<double>[Nrs.size()];      \
+  vector<double> *scalabilities_for_each_Nr_ff_pool = new vector<double>[Nrs.size()]; \
+  vector<double> *efficiencies_for_each_Nr_ff_pool = new vector<double>[Nrs.size()];  \
+                                                                                      \
+  vector<double> *times_for_each_Nr_mdf = new vector<double>[Nrs.size()];             \
+  vector<double> *speedups_for_each_Nr_mdf = new vector<double>[Nrs.size()];          \
+  vector<double> *scalabilities_for_each_Nr_mdf = new vector<double>[Nrs.size()];     \
+  vector<double> *efficiencies_for_each_Nr_mdf = new vector<double>[Nrs.size()];
+
+#define compute_statistics(directive, times, speedups, scalabilities, efficiencies)                                                                                                   \
+  times[i] = compute_average_times(directive, Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y); \
+  speedups[i] = compute_speedups(times[i], t0);                                                                                                                                       \
+  scalabilities[i] = compute_scalabilities(times[i]);                                                                                                                                 \
+  efficiencies[i] = compute_effieciencies(speedups[i]);
+
 /************* FUNCTIONS TO COMPUTE OBSERVED METRICS *********************/
 
 vector<double> compute_average_times(string ff, int Nr, int n_samples, int n_trials, int max_par_degree, int c_line_size, Matrix_wrapper dataset, Matrix_wrapper dataset_n, float **W, float **Win,
@@ -36,10 +63,10 @@ vector<double> compute_average_times(string ff, int Nr, int n_samples, int n_tri
       {
         utimer t(to_string(par_deg), &ts[i]);
         err = par_train(ff, par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
-        plt::plot(err);
-        plt::title("err with " + to_string(Nr) + " neurons and par deg " + to_string(par_deg));
-        plt::save("imgs/" + to_string(Nr) + "-" + to_string(par_deg) + "-err");
-        plt::show();
+        //plt::plot(err);
+        //plt::title("err with " + to_string(Nr) + " neurons and par deg " + to_string(par_deg));
+        //plt::save("imgs/" + to_string(Nr) + "-" + to_string(par_deg) + "-err");
+        //plt::show();
       }
       times[par_deg] = mean(ts);
     }

@@ -16,7 +16,6 @@ using namespace std;
 
 struct Task
 {
-
 public:
   bool terminated;
   std::mutex *mutex; // this is not cpyable, set it as a pointer and instantiate it in constructor, see difference struct and struct

@@ -8,7 +8,7 @@
 #endif
 
 #ifndef ff_parallel_for_h
-#define ff_parallel_for_f
+#define ff_parallel_for_h
 #include <ff/parallel_for.hpp>
 #endif
 
@@ -24,6 +24,8 @@
 
 namespace plt = matplotlibcpp;
 using namespace std;
+
+/************* PURE COMMON TEXT *********************/
 
 void plot(vector<int> Nrs, vector<double> *v, string s, int n_trials, bool ff)
 {
@@ -49,7 +51,24 @@ void plot(vector<int> Nrs, vector<double> *v, string s, int n_trials, bool ff)
   //plt::show();
 }
 
-/************* PURE COMMON TEXT *********************/
+#define declare_vectors_and_matrices()    \
+  int Nr = Nrs[i];                        \
+  ESN n = ESN(Nr, 4, 4);                  \
+  float **W = n.W.m;                      \
+  float **Win = n.Win.m;                  \
+  float **Wold = zeros(4, Nr + 1).m;      \
+  float **Wout = zeros(4, Nr + 1).m;      \
+  float **P = zeros(Nr + 1, Nr + 1).m;    \
+  float **Pold = zeros(Nr + 1, Nr + 1).m; \
+                                          \
+  float *x = zeros(1, Nr + 1).m[0];       \
+  float *x_rec = zeros(1, Nr + 1).m[0];   \
+  float *x_in = zeros(1, Nr + 1).m[0];    \
+  float *x_old = zeros(1, Nr + 1).m[0];   \
+                                          \
+  float *k = zeros(1, Nr + 1).m[0];       \
+  float *z = zeros(1, Nr + 1).m[0];       \
+  float *y = zeros(1, 4).m[0];
 
 #define init_train_loop()                                                                    \
   tie(Wout, Wold, P, Pold) = prepare_matrices(Nr, Ny, Wout, Wold, P, Pold, nabla);           \
@@ -63,14 +82,14 @@ void plot(vector<int> Nrs, vector<double> *v, string s, int n_trials, bool ff)
   float k_den;                                                                               \
   float s;
 
+#define init_train_iteration() \
+  u = dataset_n.m[cnt];        \
+  d = dataset.m[cnt + 1];
+
 #define end_train_iteration()     \
   s = compute_error(d, y, Ny);    \
   error_norms.push_back(sqrt(s)); \
   cnt++;
-
-#define init_train_iteration() \
-  u = dataset_n.m[cnt];        \
-  d = dataset.m[cnt + 1];
 
 tuple<float **, float **, float **, float **> prepare_matrices(int Nr, int Ny, float **Wout, float **Wold, float **P, float **Pold, float nabla)
 {
