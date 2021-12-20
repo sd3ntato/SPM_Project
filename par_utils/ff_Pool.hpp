@@ -105,6 +105,8 @@ struct ff_pool
   {
     this->terminate();
     farm->wait_freezing();
+    delete farm;
+    delete taskq;
   }
 
   void submit(vector<Task *> taskv)

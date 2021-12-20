@@ -36,14 +36,14 @@ using namespace std;
   vector<double> *efficiencies_for_each_Nr_mdf = new vector<double>[Nrs.size()];
 
 #define compute_statistics(directive, times, speedups, scalabilities, efficiencies)                                                                                                   \
-  times[i] = compute_average_times(directive, Nr, n_samples, n_trials, max_par_degree, c_line_size, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y); \
+  times[i] = compute_average_times(directive, Nr, n_samples, n_trials, max_par_degree, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y); \
   speedups[i] = compute_speedups(times[i], t0);                                                                                                                                       \
   scalabilities[i] = compute_scalabilities(times[i]);                                                                                                                                 \
   efficiencies[i] = compute_effieciencies(speedups[i]);
 
 /************* FUNCTIONS TO COMPUTE OBSERVED METRICS *********************/
 
-vector<double> compute_average_times(string ff, int Nr, int n_samples, int n_trials, int max_par_degree, int c_line_size, Matrix_wrapper dataset, Matrix_wrapper dataset_n, float **W, float **Win,
+vector<double> compute_average_times(string ff, int Nr, int n_samples, int n_trials, int max_par_degree, Matrix_wrapper dataset, Matrix_wrapper dataset_n, float **W, float **Win,
                                      float **Wout, float **Wold, float **P, float **Pold,
                                      float *x, float *x_rec, float *x_in, float *x_old, float *k, float *z, float *y)
 {
@@ -62,7 +62,7 @@ vector<double> compute_average_times(string ff, int Nr, int n_samples, int n_tri
       for (int i = 0; i < n_trials; i++)
       {
         utimer t(to_string(par_deg), &ts[i]);
-        err = par_train(ff, par_deg, c_line_size, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
+        err = par_train(ff, par_deg, n_samples, dataset, dataset_n, Nr, Nu, Ny, nabla, l, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
         //plt::plot(err);
         //plt::title("err with " + to_string(Nr) + " neurons and par deg " + to_string(par_deg));
         //plt::save("imgs/" + to_string(Nr) + "-" + to_string(par_deg) + "-err");

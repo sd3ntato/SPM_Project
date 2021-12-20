@@ -39,7 +39,7 @@ par0: par0.cpp \
 	par_utils/utimer.cpp \
 	par_utils/ff_Pool.hpp \
 	par_utils/tasks.h \
-	par_utils/pool.cpp par_utils/pool.h \
+	par_utils/pool.h \
 	par_utils/parallel_functs.h \
 	par_utils/seq_functs.h \
 	par_utils/utils.h \

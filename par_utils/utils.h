@@ -51,6 +51,23 @@ void plot(vector<int> Nrs, vector<double> *v, string s, int n_trials, bool ff)
   //plt::show();
 }
 
+void plot_comparison(string what, vector<double> quantity_none, vector<double> quantity_parfor, vector<double> quantity_ff_pool, int n_trials)
+{
+  plt::figure_size(1200, 780);
+  plt::named_plot("none", quantity_none, "-x");
+  plt::named_plot("parfor", quantity_parfor, "-x");
+  plt::named_plot("ff_pool", quantity_ff_pool, "-x");
+
+  plt::xlabel("number of workers");
+  plt::ylabel("average " + what + " on " + to_string(n_trials) + " executions");
+
+  plt::title("comparison " + what);
+  plt::legend();
+  plt::save("imgs/comparison_" + what );
+
+  //plt::show();
+}
+
 #define declare_vectors_and_matrices()    \
   int Nr = Nrs[i];                        \
   ESN n = ESN(Nr, 4, 4);                  \

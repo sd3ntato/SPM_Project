@@ -45,8 +45,8 @@ namespace plt = matplotlibcpp;
 
 #define train_iteration_pool()                                                  \
   /* compute rec and in parts of state update */                                \
-  p.parallel_matrix_dot_vector(0, Nr, 0, Nr, c_line_size / 4, W, x_old, x_rec); \
-  p.parallel_matrix_dot_vector(0, Nr, 0, Nu, c_line_size / 4, Win, u, x_in);    \
+  p.parallel_matrix_dot_vector(0, Nr, 0, Nr, -1, W, x_old, x_rec); \
+  p.parallel_matrix_dot_vector(0, Nr, 0, Nu, -1, Win, u, x_in);    \
   p.barrier();                                                                  \
                                                                                 \
   /* compute tanh(sum...) */                                                    \
@@ -54,11 +54,11 @@ namespace plt = matplotlibcpp;
   p.barrier();                                                                  \
                                                                                 \
   /* z = P|x */                                                                 \
-  p.parallel_matrix_dot_vector(0, Nr + 1, 0, Nr + 1, c_line_size / 4, P, x, z); \
+  p.parallel_matrix_dot_vector(0, Nr + 1, 0, Nr + 1, -1, P, x, z); \
   p.barrier();                                                                  \
                                                                                 \
   /* k_den = x.T | z , y = Wout|x */                                            \
-  p.parallel_matrix_dot_vector(0, Ny, 0, Nr + 1, c_line_size / 4, Wout, x, y);  \
+  p.parallel_matrix_dot_vector(0, Ny, 0, Nr + 1, -1, Wout, x, y);  \
   p.submit({new Dot_task(0, Nr + 1, 0, &x, z, &k_den)});                        \
   p.barrier();                                                                  \
                                                                                 \
@@ -119,17 +119,17 @@ namespace plt = matplotlibcpp;
 
 #define ff_pool_train_iteration()                                                          \
   /* compute rec and in parts of state update */                                           \
-  ff_pool::parallel_matrix_dot_vector(&p, 0, Nr, 0, Nr, c_line_size / 4, W, x_old, x_rec); \
-  ff_pool::parallel_matrix_dot_vector(&p, 0, Nr, 0, Nu, c_line_size / 4, Win, u, x_in);    \
+  ff_pool::parallel_matrix_dot_vector(&p, 0, Nr, 0, Nr, -1, W, x_old, x_rec); \
+  ff_pool::parallel_matrix_dot_vector(&p, 0, Nr, 0, Nu, -1, Win, u, x_in);    \
                                                                                            \
   /* compute tanh(sum...)*/                                                                \
   ff_pool::comp_state(Nr, Nu, x, x_rec, x_in, Win, x_old, &p);                             \
                                                                                            \
   /* z = P|x*/                                                                             \
-  ff_pool::parallel_matrix_dot_vector(&p, 0, Nr + 1, 0, Nr + 1, c_line_size / 4, P, x, z); \
+  ff_pool::parallel_matrix_dot_vector(&p, 0, Nr + 1, 0, Nr + 1, -1, P, x, z); \
                                                                                            \
   /* k_den = x.T | z , y = Wout|x*/                                                        \
-  ff_pool::parallel_matrix_dot_vector(&p, 0, Ny, 0, Nr + 1, c_line_size / 4, Wout, x, y);  \
+  ff_pool::parallel_matrix_dot_vector(&p, 0, Ny, 0, Nr + 1, -1, Wout, x, y);  \
   ff_pool::comp_k_den(0, Nr + 1, x, z, &k_den, l, &p);                                     \
                                                                                            \
   /* k = z/k_den*/                                                                         \
@@ -194,7 +194,7 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
   mdf_submit_compute_new_p(P, Pold, k, z, l, Nr, p);
 }
 
-vector<double> par_train(string ff, int par_degree, int c_line_size, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
+vector<double> par_train(string ff, int par_degree, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
                          int Nr, int Nu, int Ny, float nabla, float l,
                          float **W, float **Win, float **Wout, float **Wold, float **P, float **Pold,
                          float *x, float *x_rec, float *x_in, float *x_old, float *k, float *z, float *y)
