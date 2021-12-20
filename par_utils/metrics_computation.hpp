@@ -1,6 +1,14 @@
-#include <vector>
 #include "matplotlibcpp.h"
+
+#ifndef vector_h
+#define vector_h
+#include <vector>
+#endif
+
+#ifndef string_h
+#define string_h
 #include <string>
+#endif
 
 #ifndef parallel_functs_h
 #define parallel_functs_h
@@ -14,32 +22,107 @@
 
 using namespace std;
 
-#define prepare_vectors_for_statistics()                                              \
-  vector<double> *times_for_each_Nr = new vector<double>[Nrs.size()];                 \
-  vector<double> *speedups_for_each_Nr = new vector<double>[Nrs.size()];              \
-  vector<double> *scalabilities_for_each_Nr = new vector<double>[Nrs.size()];         \
-  vector<double> *efficiencies_for_each_Nr = new vector<double>[Nrs.size()];          \
-                                                                                      \
-  vector<double> *times_for_each_Nr_parfor = new vector<double>[Nrs.size()];          \
-  vector<double> *speedups_for_each_Nr_parfor = new vector<double>[Nrs.size()];       \
-  vector<double> *scalabilities_for_each_Nr_parfor = new vector<double>[Nrs.size()];  \
-  vector<double> *efficiencies_for_each_Nr_parfor = new vector<double>[Nrs.size()];   \
-                                                                                      \
-  vector<double> *times_for_each_Nr_ff_pool = new vector<double>[Nrs.size()];         \
-  vector<double> *speedups_for_each_Nr_ff_pool = new vector<double>[Nrs.size()];      \
-  vector<double> *scalabilities_for_each_Nr_ff_pool = new vector<double>[Nrs.size()]; \
-  vector<double> *efficiencies_for_each_Nr_ff_pool = new vector<double>[Nrs.size()];  \
-                                                                                      \
-  vector<double> *times_for_each_Nr_mdf = new vector<double>[Nrs.size()];             \
-  vector<double> *speedups_for_each_Nr_mdf = new vector<double>[Nrs.size()];          \
-  vector<double> *scalabilities_for_each_Nr_mdf = new vector<double>[Nrs.size()];     \
-  vector<double> *efficiencies_for_each_Nr_mdf = new vector<double>[Nrs.size()];
+#define prepare_vectors_for_statistics() \
+  vector<double> times_none;             \
+  vector<double> speedups_none;          \
+  vector<double> scalabilities_none;     \
+  vector<double> efficiencies_none;      \
+                                         \
+  vector<double> times_parfor;           \
+  vector<double> speedups_parfor;        \
+  vector<double> scalabilities_parfor;   \
+  vector<double> efficiencies_parfor;    \
+                                         \
+  vector<double> times_ff_pool;          \
+  vector<double> speedups_ff_pool;       \
+  vector<double> scalabilities_ff_pool;  \
+  vector<double> efficiencies_ff_pool;   \
+                                         \
+  vector<double> times_mdf;              \
+  vector<double> speedups_mdf;           \
+  vector<double> scalabilities_mdf;      \
+  vector<double> efficiencies_mdf;
 
-#define compute_statistics(directive, times, speedups, scalabilities, efficiencies)                                                                                                   \
-  times[i] = compute_average_times(directive, Nr, n_samples, n_trials, max_par_degree, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y); \
-  speedups[i] = compute_speedups(times[i], t0);                                                                                                                                       \
-  scalabilities[i] = compute_scalabilities(times[i]);                                                                                                                                 \
-  efficiencies[i] = compute_effieciencies(speedups[i]);
+#define compute_statistics(directive, times, speedups, scalabilities, efficiencies)                                                                                   \
+  times = compute_average_times(directive, Nr, n_samples, n_trials, max_par_degree, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y); \
+  speedups = compute_speedups(times, t0);                                                                                                                             \
+  scalabilities = compute_scalabilities(times);                                                                                                                       \
+  efficiencies = compute_effieciencies(speedups);
+
+#define dump_statistics()                                                                 \
+  ofstream out_file("out");                                                               \
+  if (out_file.is_open())                                                                 \
+  {                                                                                       \
+    out_file << Nr << " neurons " << endl;                                                \
+                                                                                          \
+    out_file << "seq time: " << t0 << endl;                                               \
+                                                                                          \
+    dump("time", times_none, times_parfor, times_ff_pool);                                \
+    dump("speedup", speedups_none, speedups_parfor, speedups_ff_pool);                    \
+    dump("scalability", scalabilities_none, scalabilities_parfor, scalabilities_ff_pool); \
+    dump("efficiency", efficiencies_none, efficiencies_parfor, efficiencies_ff_pool);     \
+  }
+
+#define dump(what, stat_none, stat_parfor, stat_ff_pool)                                \
+  out_file << what << "_none"                                                           \
+           << " "                                                                       \
+           << what << "_parfor"                                                         \
+           << " "                                                                       \
+           << what << "_ff_pool" << endl;                                               \
+                                                                                        \
+  for (int i = 1; i < max_par_degree + 1; i++)                                          \
+  {                                                                                     \
+    out_file << stat_none[i] << " " << stat_parfor[i] << " " << stat_ff_pool[i] << " "; \
+    out_file << endl;                                                                   \
+  }                                                                                     \
+  out_file << endl;
+
+#define do_plots()                                                                                           \
+  plot_comparison("time", times_none, times_parfor, times_ff_pool, n_trials);                                \
+  plot_comparison("speedup", speedups_none, speedups_parfor, speedups_ff_pool, n_trials);                    \
+  plot_comparison("scalability", scalabilities_none, scalabilities_parfor, scalabilities_ff_pool, n_trials); \
+  plot_comparison("efficiency", efficiencies_none, efficiencies_parfor, efficiencies_ff_pool, n_trials);
+
+void plot_comparison(string what, vector<double> quantity_none, vector<double> quantity_parfor, vector<double> quantity_ff_pool, int n_trials)
+{
+  plt::figure_size(1200, 780);
+  plt::named_plot("none", quantity_none, "-x");
+  plt::named_plot("parfor", quantity_parfor, "-x");
+  plt::named_plot("ff_pool", quantity_ff_pool, "-x");
+
+  plt::xlabel("number of workers");
+  plt::ylabel("average " + what + " on " + to_string(n_trials) + " executions");
+
+  plt::title("comparison " + what);
+  plt::legend();
+  plt::save("imgs/comparison_" + what);
+
+  //plt::show();
+}
+
+void plot(vector<int> Nrs, vector<double> *v, string s, int n_trials, bool ff)
+{
+  plt::figure_size(1200, 780);
+  for (int i = 0; i < Nrs.size(); i++)
+  {
+    plt::named_plot(to_string(Nrs[i]) + " neurons", v[i], "-x");
+  }
+  plt::xlabel("number of workers");
+  plt::ylabel("average " + s + " on " + to_string(n_trials) + " executions");
+  if (ff)
+  {
+    plt::title(s + " vs. number of workers with ff");
+    plt::legend();
+    plt::save("imgs/" + s + "-nworkers_ff");
+  }
+  else
+  {
+    plt::title(s + " vs. number of workers");
+    plt::legend();
+    plt::save("imgs/" + s + "-nworkers");
+  }
+  //plt::show();
+}
 
 /************* FUNCTIONS TO COMPUTE OBSERVED METRICS *********************/
 

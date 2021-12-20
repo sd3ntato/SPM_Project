@@ -8,11 +8,6 @@
 #include <tasks.h>
 #endif
 
-#ifndef ESN_h
-#define ESN_h
-#include "ESN.h"
-#endif
-
 #ifndef utils_h
 #define utils_h
 #include "utils.h"
@@ -37,9 +32,6 @@
 #define ff_pool_h
 #include "ff_Pool.hpp"
 #endif
-
-#include "matplotlibcpp.h"
-namespace plt = matplotlibcpp;
 
 #include "math.h"
 

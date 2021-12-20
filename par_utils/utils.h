@@ -1,6 +1,12 @@
+#ifndef vector_h
+#define vector_h
 #include <vector>
-#include "matplotlibcpp.h"
+#endif
+
+#ifndef string_h
+#define string_h
 #include <string>
+#endif
 
 #ifndef ff_hpp
 #define ff_hpp
@@ -26,47 +32,6 @@ namespace plt = matplotlibcpp;
 using namespace std;
 
 /************* PURE COMMON TEXT *********************/
-
-void plot(vector<int> Nrs, vector<double> *v, string s, int n_trials, bool ff)
-{
-  plt::figure_size(1200, 780);
-  for (int i = 0; i < Nrs.size(); i++)
-  {
-    plt::named_plot(to_string(Nrs[i]) + " neurons", v[i], "-x");
-  }
-  plt::xlabel("number of workers");
-  plt::ylabel("average " + s + " on " + to_string(n_trials) + " executions");
-  if (ff)
-  {
-    plt::title(s + " vs. number of workers with ff");
-    plt::legend();
-    plt::save("imgs/" + s + "-nworkers_ff");
-  }
-  else
-  {
-    plt::title(s + " vs. number of workers");
-    plt::legend();
-    plt::save("imgs/" + s + "-nworkers");
-  }
-  //plt::show();
-}
-
-void plot_comparison(string what, vector<double> quantity_none, vector<double> quantity_parfor, vector<double> quantity_ff_pool, int n_trials)
-{
-  plt::figure_size(1200, 780);
-  plt::named_plot("none", quantity_none, "-x");
-  plt::named_plot("parfor", quantity_parfor, "-x");
-  plt::named_plot("ff_pool", quantity_ff_pool, "-x");
-
-  plt::xlabel("number of workers");
-  plt::ylabel("average " + what + " on " + to_string(n_trials) + " executions");
-
-  plt::title("comparison " + what);
-  plt::legend();
-  plt::save("imgs/comparison_" + what );
-
-  //plt::show();
-}
 
 #define declare_vectors_and_matrices()    \
   int Nr = Nrs[i];                        \

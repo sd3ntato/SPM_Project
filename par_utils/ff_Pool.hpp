@@ -14,9 +14,18 @@
 #include "pool_utils.hpp"
 #endif
 
+
+#ifndef ff_hpp
+#define ff_hpp
 #include <ff/ff.hpp>
+#endif
+
 #include <ff/farm.hpp>
+
+#ifndef vector_h
+#define vector_h
 #include <vector>
+#endif
 
 using namespace ff;
 
