@@ -33,6 +33,7 @@ using namespace std;
 
 /************* PURE COMMON TEXT *********************/
 
+/* prepares data structures needed to define the network and its functioning */
 #define declare_vectors_and_matrices()    \
   int Nr = Nrs[i];                        \
   ESN n = ESN(Nr, 4, 4);                  \
@@ -52,6 +53,7 @@ using namespace std;
   float *z = zeros(1, Nr + 1).m[0];       \
   float *y = zeros(1, 4).m[0];
 
+// resets the data structures needed to define the network and its functioning
 #define init_train_loop()                                                                    \
   tie(Wout, Wold, P, Pold) = prepare_matrices(Nr, Ny, Wout, Wold, P, Pold, nabla);           \
   tie(x, x_rec, x_in, x_old, k, z, y) = prepare_vectors(Nr, x, x_rec, x_in, x_old, k, z, y); \
@@ -64,10 +66,12 @@ using namespace std;
   float k_den;                                                                               \
   float s;
 
+// loads input to the network and desired output for this iteration
 #define init_train_iteration() \
   u = dataset_n.m[cnt];        \
   d = dataset.m[cnt + 1];
 
+// computes error committed by the network this iteration, stores it into apposite placeholder and then continues training
 #define end_train_iteration()     \
   s = compute_error(d, y, Ny);    \
   error_norms.push_back(sqrt(s)); \

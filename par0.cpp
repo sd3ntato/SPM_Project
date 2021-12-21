@@ -26,22 +26,33 @@ using namespace std;
 
 int main()
 {
-  int n_samples = 100;
-  int n_trials = 1;
+
+  /* global parameters */
+  int n_samples = 100; // number of training samples to be supplied
+  int n_trials = 1;    // number of mesurements per congiguration
   int max_par_degree = 8;
 
+  /* read dataset */
   cout << "reading dataset...";
   Matrix_wrapper dataset = read_dataset("BTCUSDT-1m-data.csv", n_samples);
-  Matrix_wrapper dataset_n = normalize(dataset);
+  Matrix_wrapper dataset_n = normalize(dataset); // in linear_algebra.cpp
   cout << "dataset read" << endl;
 
+  /* numbers of neurons for each network at test. defines scale of the problem */
   vector<int> Nrs = {2000};
 
+  /* conduct the experiments: 
+  * for each network size instantiate the network and train it with different modalities,
+  * then collect some stats on the training process,
+  * In particular, will be collecting time, speedup, scalability, efficiency, each averaged over
+  * n_trials trials.
+  */
   for (int i = 0; i < Nrs.size(); i++)
   {
-    prepare_vectors_for_statistics();
-    declare_vectors_and_matrices();
+    prepare_vectors_for_statistics(); // prepares data structure in wich will put statistics
+    declare_vectors_and_matrices();   // prepares data structure needed to define network and its functioning
 
+    /* compute sequential time */
     double t0 = compute_sequential_time(Nr, n_samples, n_trials, dataset, dataset_n, W, Win, Wout, Wold, P, Pold, x, x_rec, x_in, x_old, k, z, y);
 
     //without fastflow (my pool)
@@ -56,11 +67,16 @@ int main()
     // with mdf model + ff_pool
     //compute_statistics("mdf", times_mdf, speedups_mdf, scalabilities_mdf, efficiencies_mdf);
 
+    /* plot the collected stats and dump them into file "out" */
     do_plots();
     dump_statistics();
   }
 
-  /*
+  cout << "\ndone!\n";
+  return 0;
+}
+
+/*
   plot(Nrs, times, "times", n_trials, false);
   plot(Nrs, speedups, "speedups", n_trials, false);
   plot(Nrs, scalabilities, "scalabilities", n_trials, false);
@@ -71,7 +87,3 @@ int main()
   plot(Nrs, scalabilities_ff, "scalabilities", n_trials, true);
   plot(Nrs, efficiencies_ff, "efficiencies", n_trials, true);
   */
-
-  cout << "\nftt!\n";
-  return 0;
-}

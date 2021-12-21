@@ -35,36 +35,66 @@
 
 #include "math.h"
 
-#define train_iteration_pool()                                                  \
-  /* compute rec and in parts of state update */                                \
-  p.parallel_matrix_dot_vector(0, Nr, 0, Nr, -1, W, x_old, x_rec); \
-  p.parallel_matrix_dot_vector(0, Nr, 0, Nu, -1, Win, u, x_in);    \
-  p.barrier();                                                                  \
-                                                                                \
-  /* compute tanh(sum...) */                                                    \
-  p.map1(0, Nr, Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);             \
-  p.barrier();                                                                  \
-                                                                                \
-  /* z = P|x */                                                                 \
-  p.parallel_matrix_dot_vector(0, Nr + 1, 0, Nr + 1, -1, P, x, z); \
-  p.barrier();                                                                  \
-                                                                                \
-  /* k_den = x.T | z , y = Wout|x */                                            \
-  p.parallel_matrix_dot_vector(0, Ny, 0, Nr + 1, -1, Wout, x, y);  \
-  p.submit({new Dot_task(0, Nr + 1, 0, &x, z, &k_den)});                        \
-  p.barrier();                                                                  \
-                                                                                \
-  k_den += l;                                                                   \
-                                                                                \
-  /* k = z/k_den */                                                             \
-  p.map1(0, Nr + 1, Divide_by_const(), z, k_den, k);                            \
-  p.barrier();                                                                  \
-                                                                                \
-  /* Wold = .... ,  P = ... */                                                  \
-  p.map2(0, Ny, 0, Nr + 1, -1, Compute_new_Wout(), Wout, Wold, d, y, k);        \
-  p.map2(0, Nr + 1, 0, Nr + 1, -1, Compute_new_P(), P, Pold, k, z, l);          \
+/* computes a training iteration with a Pool object. Pool p is an instantiation of my
+* own version of a thread pool. Note that when it needs to synch results it calls p.barrier()
+*/
+#define train_iteration_pool()                                           \
+  /* compute rec and in parts of state update */                         \
+  p.parallel_matrix_dot_vector(0, Nr, 0, Nr, -1, W, x_old, x_rec);       \
+  p.parallel_matrix_dot_vector(0, Nr, 0, Nu, -1, Win, u, x_in);          \
+  p.barrier();                                                           \
+                                                                         \
+  /* compute tanh(sum...) */                                             \
+  p.map1(0, Nr, Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);      \
+  p.barrier();                                                           \
+                                                                         \
+  /* z = P|x */                                                          \
+  p.parallel_matrix_dot_vector(0, Nr + 1, 0, Nr + 1, -1, P, x, z);       \
+  p.barrier();                                                           \
+                                                                         \
+  /* k_den = x.T | z , y = Wout|x */                                     \
+  p.parallel_matrix_dot_vector(0, Ny, 0, Nr + 1, -1, Wout, x, y);        \
+  p.submit({new Dot_task(0, Nr + 1, 0, &x, z, &k_den)});                 \
+  p.barrier();                                                           \
+                                                                         \
+  k_den += l;                                                            \
+                                                                         \
+  /* k = z/k_den */                                                      \
+  p.map1(0, Nr + 1, Divide_by_const(), z, k_den, k);                     \
+  p.barrier();                                                           \
+                                                                         \
+  /* Wold = .... ,  P = ... */                                           \
+  p.map2(0, Ny, 0, Nr + 1, -1, Compute_new_Wout(), Wout, Wold, d, y, k); \
+  p.map2(0, Nr + 1, 0, Nr + 1, -1, Compute_new_P(), P, Pold, k, z, l);   \
   p.barrier();
 
+/* computes a training iteration with an ff_Pool object. ff_Pool p is an instantiation of my
+* version of a thread pool realized through an ff_Farm object and a protected queue.
+* Note that this time I am not using barriers to synch because the calls are blocking this time
+*/
+#define ff_pool_train_iteration()                                             \
+  /* compute rec and in parts of state update */                              \
+  ff_pool::parallel_matrix_dot_vector(&p, 0, Nr, 0, Nr, -1, W, x_old, x_rec); \
+  ff_pool::parallel_matrix_dot_vector(&p, 0, Nr, 0, Nu, -1, Win, u, x_in);    \
+                                                                              \
+  /* compute tanh(sum...)*/                                                   \
+  ff_pool::comp_state(Nr, Nu, x, x_rec, x_in, Win, x_old, &p);                \
+                                                                              \
+  /* z = P|x*/                                                                \
+  ff_pool::parallel_matrix_dot_vector(&p, 0, Nr + 1, 0, Nr + 1, -1, P, x, z); \
+                                                                              \
+  /* k_den = x.T | z , y = Wout|x*/                                           \
+  ff_pool::parallel_matrix_dot_vector(&p, 0, Ny, 0, Nr + 1, -1, Wout, x, y);  \
+  ff_pool::comp_k_den(0, Nr + 1, x, z, &k_den, l, &p);                        \
+                                                                              \
+  /* k = z/k_den*/                                                            \
+  ff_pool::div_by_const(k, z, &k_den, Nr + 1, &p);                            \
+                                                                              \
+  /* Wold = .... ,  P = ...*/                                                 \
+  ff_pool::compute_new_wout(Wout, d, y, k, Wold, Nr, Ny, &p);                 \
+  ff_pool::compute_new_P(P, Pold, k, z, l, Nr, &p);
+
+// computes a training iterarion with ff::parallel_for object. (object is p)
 #define train_iteration_parfor()                                    \
   /* compute rec and in parts of state update */                    \
   /* x_rec = W x_old, x_in = Win u */                               \
@@ -89,6 +119,7 @@
   compute_new_Wout_ff(Wout, d, y, k, Wold, Nr, Ny, &p);             \
   compute_new_P_ff(P, Pold, k, z, l, Nr, &p);
 
+// computes a train iteration by the use of an mdf object that orchestrates an ff_pool object
 #define mdf_train_iteration()                                                             \
   /* mdf obj */                                                                           \
   ff::ff_mdf mdf(taskGen, &Par, 8192, 3);                                                 \
@@ -109,28 +140,11 @@
                                                                                           \
   cnt++;
 
-#define ff_pool_train_iteration()                                                          \
-  /* compute rec and in parts of state update */                                           \
-  ff_pool::parallel_matrix_dot_vector(&p, 0, Nr, 0, Nr, -1, W, x_old, x_rec); \
-  ff_pool::parallel_matrix_dot_vector(&p, 0, Nr, 0, Nu, -1, Win, u, x_in);    \
-                                                                                           \
-  /* compute tanh(sum...)*/                                                                \
-  ff_pool::comp_state(Nr, Nu, x, x_rec, x_in, Win, x_old, &p);                             \
-                                                                                           \
-  /* z = P|x*/                                                                             \
-  ff_pool::parallel_matrix_dot_vector(&p, 0, Nr + 1, 0, Nr + 1, -1, P, x, z); \
-                                                                                           \
-  /* k_den = x.T | z , y = Wout|x*/                                                        \
-  ff_pool::parallel_matrix_dot_vector(&p, 0, Ny, 0, Nr + 1, -1, Wout, x, y);  \
-  ff_pool::comp_k_den(0, Nr + 1, x, z, &k_den, l, &p);                                     \
-                                                                                           \
-  /* k = z/k_den*/                                                                         \
-  ff_pool::div_by_const(k, z, &k_den, Nr + 1, &p);                                         \
-                                                                                           \
-  /* Wold = .... ,  P = ...*/                                                              \
-  ff_pool::compute_new_wout(Wout, d, y, k, Wold, Nr, Ny, &p);                              \
-  ff_pool::compute_new_P(P, Pold, k, z, l, Nr, &p);
-
+/* This data structure contains 
+* - Data structures needed to define network and its functioning
+* - mdf object to wich tasks will be submitted
+* - ff_pool object tha will be used by the mdf object to accomplish the tasks
+*/
 template <typename T>
 struct Parameters
 {
@@ -142,7 +156,7 @@ struct Parameters
   ff_pool *p;
 };
 
-// istanzia DAG di una iterazione, sottopone le task. il risultato dell' operazione lo deposita in appsito puntatore
+// instantiates DAG for an iteration, submits the tasks. The result of the operation is put into apposit placeholder inside Par d.s.
 void taskGen(Parameters<ff::ff_mdf> *const Par)
 {
   ff::ff_mdf *mdf = Par->mdf;
@@ -186,18 +200,28 @@ void taskGen(Parameters<ff::ff_mdf> *const Par)
   mdf_submit_compute_new_p(P, Pold, k, z, l, Nr, p);
 }
 
+/* the first param in par_traing is a string, it can be:
+* - none for no ff - uses my implementation of thread pool -
+* - parfor for ff_parallel_for
+* - ff_pool for my impl. of thread pool using ff
+* - mdf for mdf model orchestrating the ff_pool object
+*/
 vector<double> par_train(string ff, int par_degree, int n_samples, Matrix_wrapper dataset, Matrix_wrapper dataset_n,
                          int Nr, int Nu, int Ny, float nabla, float l,
                          float **W, float **Win, float **Wout, float **Wold, float **P, float **Pold,
                          float *x, float *x_rec, float *x_in, float *x_old, float *k, float *z, float *y)
 {
 
+  // resets the data structures needed to define the network and its functioning
   init_train_loop();
 
-  if (ff == "none")
+  // differentiate between the various modalities:
+  if (ff == "none") // no ff, uses my implementation of thread pool
   {
     std::cout << "doing with none" << std::endl;
+
     Pool p(par_degree);
+    
     while (cnt < n_samples)
     {
       init_train_iteration();
@@ -205,10 +229,12 @@ vector<double> par_train(string ff, int par_degree, int n_samples, Matrix_wrappe
       end_train_iteration();
     }
   }
-  else if (ff == "parfor")
+  else if (ff == "parfor") // uses ff:parallelFor
   {
     std::cout << "doing with parfor" << std::endl;
+    
     ff::ParallelFor p(par_degree);
+    
     while (cnt < n_samples)
     {
       init_train_iteration();
@@ -216,10 +242,12 @@ vector<double> par_train(string ff, int par_degree, int n_samples, Matrix_wrappe
       end_train_iteration();
     }
   }
-  else if (ff == "ff_pool")
+  else if (ff == "ff_pool") // uses my implementation of thread pool that in turn uses ff::Farm
   {
     std::cout << "doing with ff_pool" << std::endl;
+    
     ff_pool p(par_degree);
+    
     while (cnt < n_samples)
     {
       init_train_iteration();
@@ -227,9 +255,10 @@ vector<double> par_train(string ff, int par_degree, int n_samples, Matrix_wrappe
       end_train_iteration();
     }
   }
-  else if (ff == "mdf")
+  else if (ff == "mdf") // uses ff::mdf to orchestrate an ff_pool object
   {
     std::cout << "doing with mdf" << std::endl;
+    
     // data structure that contains data used by the DAG
     Parameters<ff::ff_mdf> Par;
 

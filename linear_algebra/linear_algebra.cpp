@@ -421,6 +421,7 @@ double var(Matrix_wrapper mat)
   return mean(square(mat - mean(mat)));
 }
 
+/* given dataset matrix, returns its normalized version */
 Matrix_wrapper normalize(Matrix_wrapper mat)
 {
   Matrix_wrapper res = copy(mat);
@@ -521,6 +522,7 @@ void dot_in_place(int start, int stop, float *v1, float *v2, float *x)
 #include <fstream>
 #include <string>
 #include <sstream>
+/* reads the csv file in which the dataset is saved and stores it into a matrix */
 Matrix_wrapper read_dataset(string filename, int n_samples)
 {
   string line;
