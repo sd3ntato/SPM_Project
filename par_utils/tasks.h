@@ -113,12 +113,12 @@ private:
 
 public:
   Compute_new_Wout() = default;
-  Compute_new_Wout(int start, int stop, int i0, int ii, float **Wout, float **Wold, float *d, float *y, float *k)
+  Compute_new_Wout(int i0, int ii,int start, int stop, float **Wout, float **Wold, float *d, float *y, float *k)
   {
-    this->start = start;
-    this->stop = stop;
     this->i0 = i0;
     this->ii = ii;
+    this->start = start;
+    this->stop = stop;
     this->Wout = Wout;
     this->Wold = Wold;
     this->d = d;
@@ -142,12 +142,12 @@ private:
 
 public:
   Compute_new_P() = default;
-  Compute_new_P(int start, int stop, int i0, int ii, float **P, float **Pold, float *k, float *z, float l)
+  Compute_new_P( int i0, int ii, int start, int stop, float **P, float **Pold, float *k, float *z, float l)
   {
-    this->start = start;
-    this->stop = stop;
     this->i0 = i0;
     this->ii = ii;
+    this->start = start;
+    this->stop = stop;
     this->P = P;
     this->Pold = Pold;
     this->k = k;
@@ -171,20 +171,23 @@ private:
 
 public:
   Multiple_Dot_task() = default;
-  Multiple_Dot_task(int start, int stop, int i0, int ii, float **M, float *x, float *y)
+  Multiple_Dot_task(int i0, int ii, int start, int stop, float **M, float *x, float *y)
   {
-    this->start = start;
-    this->stop = stop;
     this->i0 = i0;
     this->ii = ii;
+    this->start = start;
+    this->stop = stop;
     this->M = M;
     this->x = x;
     this->y = y;
+    //cout << "creata " << i0 << " " << ii << endl  << flush;
   }
   void execute()
   {
+    //cout << "inizio for" << endl << flush;
     for (int i = i0; i < ii; i++)
     {
+      //cout<<"qui "<< start<<" "<< stop<<" "<< i <<endl<<flush;
       dot_in_place(start, stop, M[i], x, &y[i]);
     }
   }

@@ -154,17 +154,17 @@ struct ff_pool
   // blocking version in ff_pool.
   // args is arguments to the contructor of task object
   template <typename Task_t, typename... Args>
-  static void map1(ff_pool *p, int begin, int end, Task_t task, Args... args)
+  static void map(ff_pool *p, int begin, int end, Task_t task, Args... args)
   {
     std::vector<Task *> tasks;
     int n_points = end - begin;
 
     // diff is the size of the slices in wich the interval begin - end is divided.
-    // a slice is either long (end-begin)/nworkers or the size of a cache line divided by the size of a float 
+    // a slice is either long (end-begin)/nworkers or the size of a cache line divided by the size of a float
     // ( last one to avoid false sharing )
     int diff = max((int)floor(n_points / p->nworkers), 128 / 4);
 
-    if (diff == 0) 
+    if (diff == 0)
       diff = n_points;
 
     // now that we know the size of the intervals
@@ -183,43 +183,14 @@ struct ff_pool
     p->submit(tasks);
   }
 
-  // identical to map1 except that it specifies two couples of indeces
-  template <typename Task_t, typename... Args>
-  static void map2(ff_pool *p, int begin, int end, int start, int stop, int diff, Task_t task, Args... args)
-  {
-    std::vector<Task *> tasks;
-    
-    // if diff is not given infer it from the number of points int the interval begin - end
-    if (diff == -1)
-    {
-      int n_points = end - begin;
-      if (n_points <= p->nworkers) // in case the interval is very small create a single task
-        diff = n_points;
-      else
-        diff = max((int)floor(n_points / p->nworkers), 128 / 4);
-    }
-
-    int i0, ii;
-    for (int i = begin; i < end; i += diff)
-    {
-      i0 = i;
-      ii = min(i + diff, end);
-      //                   horizontally   vertically
-      //                   |          |  |     |
-      tasks.push_back(new Task_t(start, stop, i0, ii, args...));
-    }
-
-    p->submit(tasks);
-  }
-
   static void parallel_matrix_dot_vector(ff_pool *p, int row_start, int row_stop, int col_start, int col_stop, int diff, float **M, float *v, float *r)
   {
-    ff_pool::map2(p, row_start, row_stop, col_start, col_stop, diff, Multiple_Dot_task(), M, v, r);
+    ff_pool::map(p, row_start, row_stop, Multiple_Dot_task(), col_start, col_stop, M, v, r);
   }
 
   static void comp_state(int Nr, int Nu, float *x, float *x_rec, float *x_in, float **Win, float *x_old, ff_pool *p)
   {
-    ff_pool::map1(p, 0, Nr, Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);
+    ff_pool::map(p, 0, Nr, Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);
   }
 
   static void comp_k_den(int start, int stop, float *x, float *z, float *k_den, float l, ff_pool *p)
@@ -230,16 +201,16 @@ struct ff_pool
 
   static void div_by_const(float *k, float *z, float *k_den, int stop, ff_pool *p)
   {
-    ff_pool::map1(p, 0, stop, Divide_by_const(), z, *k_den, k);
+    ff_pool::map(p, 0, stop, Divide_by_const(), z, *k_den, k);
   }
 
   static void compute_new_wout(float **Wout, float *d, float *y, float *k, float **Wold, int Nr, int Ny, ff_pool *p)
   {
-    ff_pool::map2(p, 0, Ny, 0, Nr + 1, -1, Compute_new_Wout(), Wout, Wold, d, y, k);
+    ff_pool::map(p, 0, Ny, Compute_new_Wout(), 0, Nr + 1, Wout, Wold, d, y, k);
   }
 
   static void compute_new_P(float **P, float **Pold, float *k, float *z, float l, int Nr, ff_pool *p)
   {
-    ff_pool::map2(p, 0, Nr + 1, 0, Nr + 1, -1, Compute_new_P(), P, Pold, k, z, l);
+    ff_pool::map(p, 0, Nr + 1, Compute_new_P(), 0, Nr + 1, P, Pold, k, z, l);
   }
 };

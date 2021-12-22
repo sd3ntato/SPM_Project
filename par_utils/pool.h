@@ -90,7 +90,7 @@ public:
   ~Pool() { this->terminate(); }
 
   template <typename T, typename... Args>
-  void map1(int begin, int end, T task, Args... args)
+  void map(int begin, int end, T task, Args... args)
   {
     int n_points = end - begin;
     int diff = max((int)floor(n_points / n_workers), 128 / 4);
@@ -105,31 +105,9 @@ public:
     }
   }
 
-  template <typename T, typename... Args>
-  void map2(int begin, int end, int start, int stop, int diff, T task, Args... args)
-  {
-    if (diff == -1)
-    {
-      int n_points = end - begin;
-      if (n_points <= n_workers)
-        diff = n_points;
-      else
-        diff = max((int)floor(n_points / n_workers), 128 / 4);
-    }
-    int i0, ii;
-    for (int i = begin; i < end; i += diff)
-    {
-      i0 = i;
-      ii = min(i + diff, end);
-      //            horizontally   vertically
-      //            |           |  |     |
-      this->submit({new T(start, stop, i0, ii, args...)});
-    }
-  }
-
   void parallel_matrix_dot_vector(int row_start, int row_stop, int col_start, int col_stop, int diff, float **M, float *v, float *r)
   {
-    this->map2(row_start, row_stop, col_start, col_stop, diff, Multiple_Dot_task(), M, v, r);
+    this->map(row_start, row_stop, Multiple_Dot_task(), col_start, col_stop, M, v, r);
     this->barrier();
   }
 };
