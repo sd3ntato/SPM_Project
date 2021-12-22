@@ -180,14 +180,11 @@ public:
     this->M = M;
     this->x = x;
     this->y = y;
-    //cout << "creata " << i0 << " " << ii << endl  << flush;
   }
   void execute()
   {
-    //cout << "inizio for" << endl << flush;
     for (int i = i0; i < ii; i++)
     {
-      //cout<<"qui "<< start<<" "<< stop<<" "<< i <<endl<<flush;
       dot_in_place(start, stop, M[i], x, &y[i]);
     }
   }
