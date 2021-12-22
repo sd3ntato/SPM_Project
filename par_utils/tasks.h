@@ -14,21 +14,30 @@
 #include <condition_variable>
 using namespace std;
 
+// This is the mother Task class. Its constructo instantiates tools for asyncronous wait on the completition of the task.
+// New tasks can be designed by overloading the execute method and encapsulating her arguments into child class contructor.
+// See below for example usage
 struct Task
 {
 public:
-  bool terminated;
-  std::mutex *mutex; // this is not cpyable, set it as a pointer and instantiate it in constructor, see difference struct and struct
-  std::condition_variable *condition;
+  bool terminated; // indicates wheter the task has been executed
+  std::mutex *mutex; // this is not cpyable, so I have to set it as a pointer and instantiate it in constructor.
+  std::condition_variable *condition; // same as above mutex
+
+  // this gets called whenever one constructs a child class instantiation
   Task()
   {
     mutex = new std::mutex;
     condition = new std::condition_variable;
     terminated = false;
   }
+
+  // This method is supposed to incapsulate the business logic of the task.
+  // It is supposed to work on members of the child class
   virtual void execute(){};
 };
 
+// To compute dot product between to vectors and deposit the result into apposite placeholder
 struct Dot_task : public Task
 {
 private:
@@ -52,6 +61,9 @@ public:
   }
 };
 
+// To compute novel state of the network.
+// State of the network is defined as a vector of scalar numbers.
+// computes entries of the state vector whose indeces range from this->start to this->stop
 struct Comp_state_task : public Task
 {
 private:
@@ -80,6 +92,8 @@ public:
   }
 };
 
+// To divide a vector of scalar numbers by a constant scalar number.
+// Computes elements whose indeces range from this->start to this->stop
 struct Divide_by_const : public Task
 {
 private:
@@ -105,6 +119,8 @@ public:
   }
 };
 
+// To compute new entries of Wout and copy old values into apposit matrix.
+// computes the entries one row at a time, wokring on row this->i0 to this->ii (i infinite)
 struct Compute_new_Wout : public Task
 {
 private:
@@ -134,6 +150,8 @@ public:
   }
 };
 
+// To compute new entries of P and copy old values into apposit matrix.
+// computes the entries one row at a time, wokring on row this->i0 to this->ii (i infinite)
 struct Compute_new_P : public Task
 {
 private:
@@ -163,6 +181,8 @@ public:
   }
 };
 
+// To compute part of a matrix-to-vector dot product.
+// computes the entries one row at a time, wokring on row this->i0 to this->ii (i infinite)
 struct Multiple_Dot_task : public Task
 {
 private:

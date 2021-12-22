@@ -56,6 +56,9 @@ using namespace std;
   scalabilities = compute_scalabilities(times);                                                                                                                       \
   efficiencies = compute_effieciencies(speedups);
 
+/* saves the statics computed up to now into
+* apposite output file named "out"
+*/
 #define dump_statistics()                                                                 \
   ofstream out_file("out");                                                               \
   if (out_file.is_open())                                                                 \
@@ -70,6 +73,7 @@ using namespace std;
     dump("efficiency", efficiencies_none, efficiencies_parfor, efficiencies_ff_pool);     \
   }
 
+// dumps one of the metrics computed in a table
 #define dump(what, stat_none, stat_parfor, stat_ff_pool)                                \
   out_file << what << "_none"                                                           \
            << " "                                                                       \
@@ -84,12 +88,14 @@ using namespace std;
   }                                                                                     \
   out_file << endl;
 
+// plots the results of the experiments
 #define do_plots()                                                                                           \
   plot_comparison("time", times_none, times_parfor, times_ff_pool, n_trials);                                \
   plot_comparison("speedup", speedups_none, speedups_parfor, speedups_ff_pool, n_trials);                    \
   plot_comparison("scalability", scalabilities_none, scalabilities_parfor, scalabilities_ff_pool, n_trials); \
   plot_comparison("efficiency", efficiencies_none, efficiencies_parfor, efficiencies_ff_pool, n_trials);
 
+// computes a plot comparing results of the experiments on a given metric by the observed methods
 void plot_comparison(string what, vector<double> quantity_none, vector<double> quantity_parfor, vector<double> quantity_ff_pool, int n_trials)
 {
   plt::figure_size(1200, 780);
@@ -107,6 +113,7 @@ void plot_comparison(string what, vector<double> quantity_none, vector<double> q
   //plt::show();
 }
 
+// plots a single stat for different prbolem scales (Nrs)
 void plot(vector<int> Nrs, vector<double> *v, string s, int n_trials, bool ff)
 {
   plt::figure_size(1200, 780);

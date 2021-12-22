@@ -12,6 +12,7 @@ Matrix_wrapper::Matrix_wrapper(float **m, int n1, int n2)
   this->n2 = n2;
 }
 
+// dot product
 Matrix_wrapper Matrix_wrapper::operator|(const Matrix_wrapper &m2)
 {
   if (this->n2 != m2.n1)
@@ -260,7 +261,7 @@ Matrix_wrapper generate_random_sparse_matrix(int n1, int n2, float d, float inte
   float *numbers = new float[n];
   int *positions = new int[n];
 
-  // put all positions to -1 so that whe rand number generator gets a 0 he put it in only one time
+  // put all positions to -1 so that if the rand number generator gets a 0 he put it in only one time
   for (int i = 0; i < n; i++)
   {
     positions[i] = -1;
@@ -274,12 +275,11 @@ Matrix_wrapper generate_random_sparse_matrix(int n1, int n2, float d, float inte
   {
     numbers[i] = fdis(gen); // decido che numero voglio inserire
 
-    /* per la posizione del numero: non posso scegliere la stessa posizione due volte,
-        // che significa che la lista positions non puo' avere duplicati.
-        // modo molto stupido per inserire senza fare duplicati: prima di inserire controllo se 
-        // il numero che sto inserendo l'ho gia messo. Se l'ho gia messo non va bene quindi ne prendo un altro
-        */
-    int p = idis(gen); // prendo un numero a caso
+    /* to choose the position:
+    * I cannot choose the same position more then once so before inserting a number into positions
+    * I check that I didnt put it in already
+    */
+    int p = idis(gen); // take a random integer
     while (contains(positions, n1 * n2, p))
     {                //controllo se gia sta nella lista
       p = idis(gen); // se ho verificato che quello che volevo inserire gia sta nella lista ne prendo un altro
@@ -435,6 +435,7 @@ Matrix_wrapper normalize(Matrix_wrapper mat)
   return res;
 }
 
+// frees space occupied by float** underlying matrices
 void free_matrices(vector<Matrix_wrapper> matrices)
 {
   for (int i = 0; i < (int)matrices.size(); i++)
@@ -457,7 +458,7 @@ float spectral_radius(MatrixXd M)
   DenseGenMatProd<double> op(M);
 
   // Construct eigen solver object, requesting the largest
-  // (in magnitude, or norm) three eigenvalues
+  // (in magnitude, or norm) eigenvalue
   GenEigsSolver<DenseGenMatProd<double>> eigs(op, 1, 6);
 
   // Initialize and compute
@@ -469,13 +470,13 @@ float spectral_radius(MatrixXd M)
   if (eigs.info() == CompInfo::Successful)
   {
     evalues = eigs.eigenvalues();
-    //std::cout << "Eigenvalues found:" << evalues(0) << std::endl;
     return abs(evalues(0));
   }
   cout << "eig comp falied";
   return 0;
 }
 
+// contractive = spectral radius <1
 Matrix_wrapper build_sparse_contractive_matrix(int n1, int n2)
 {
   MatrixXd mat = (MatrixXd::Random(n1, n2).array() > 0.9).cast<double>() * MatrixXd::Random(n1, n2).array();
@@ -487,7 +488,7 @@ Matrix_wrapper build_sparse_contractive_matrix(int n1, int n2)
     assert(false);
   }
 
-  mat = mat * (0.8 / rho_act);
+  mat = mat * (0.8 / rho_act); // <----------- reset spectral radious
 
   cout << "spectral radius of the  recurrent matrix: " << spectral_radius(mat) << endl;
 

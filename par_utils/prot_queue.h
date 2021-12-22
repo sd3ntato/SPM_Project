@@ -7,6 +7,8 @@
 
 using namespace std;
 
+/* This is a given protected (thread safe) queue (from SPM course) with some adds
+ */
 template <typename T>
 class prot_queue
 {
@@ -33,6 +35,7 @@ inline void prot_queue<T>::push(T const &value)
   this->d_condition.notify_all();
 }
 
+// the pop function blocks until an element is available to pop from the queue
 template <typename T>
 inline T prot_queue<T>::pop()
 {
@@ -53,7 +56,6 @@ inline bool prot_queue<T>::empty()
 {
   unique_lock<std::mutex> lock(this->d_mutex);
   return d_queue.empty();
-  d_condition.notify_all();
 }
 
 template <typename T>

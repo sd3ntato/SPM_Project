@@ -28,7 +28,7 @@
 
 using namespace ff;
 
-// given a task it sets its terminated flag in thread safe manner
+// given a task, this sets its terminated flag in thread safe manner
 #define set_terminated(t)                        \
   {                                              \
     {                                            \
@@ -38,7 +38,7 @@ using namespace ff;
     t->condition->notify_all();                  \
   }
 
-// given a task it waits for its termination flag to be set
+// given a task, this waits for its termination flag to be set
 #define await_termination_of(task)                       \
   {                                                      \
     unique_lock<std::mutex> lock(*(task->mutex));        \
@@ -62,7 +62,7 @@ struct Worker : ff_node_t<Task>
 // When the queue is non empty it pushes the tasks to the worker threads
 struct Emitter : ff_node_t<Task>
 {
-  prot_queue<Task *> *taskq;
+  prot_queue<Task *> *taskq; // the tasks queue
 
   Emitter(prot_queue<Task *> *q)
   {
@@ -183,32 +183,38 @@ struct ff_pool
     p->submit(tasks);
   }
 
+  // explots the thread pool and its map function to compute dot product in parallel. Deposits the result into apposite vector
   static void parallel_matrix_dot_vector(ff_pool *p, int row_start, int row_stop, int col_start, int col_stop, int diff, float **M, float *v, float *r)
   {
     ff_pool::map(p, row_start, row_stop, Multiple_Dot_task(), col_start, col_stop, M, v, r);
   }
 
+  // explots the thread pool to update the state of the network in parallel. ...
   static void comp_state(int Nr, int Nu, float *x, float *x_rec, float *x_in, float **Win, float *x_old, ff_pool *p)
   {
     ff_pool::map(p, 0, Nr, Comp_state_task(), Nu, x_rec, x_in, Win, x, x_old);
   }
 
+  // just submits a vector-to-vector dot product to the thread pool
   static void comp_k_den(int start, int stop, float *x, float *z, float *k_den, float l, ff_pool *p)
   {
     p->submit({new Dot_task(start, stop, 0, &x, z, k_den)});
     *k_den += l;
   }
 
+  // divides a vector by a contant scalar exploting the thread pool
   static void div_by_const(float *k, float *z, float *k_den, int stop, ff_pool *p)
   {
     ff_pool::map(p, 0, stop, Divide_by_const(), z, *k_den, k);
   }
 
+  // exploits the thread pool to compute the new entries in Wout matrix and copy old values into Wold
   static void compute_new_wout(float **Wout, float *d, float *y, float *k, float **Wold, int Nr, int Ny, ff_pool *p)
   {
     ff_pool::map(p, 0, Ny, Compute_new_Wout(), 0, Nr + 1, Wout, Wold, d, y, k);
   }
 
+  //exploits the thread pool to compute the new entries int P matrix and copy old values into Pold
   static void compute_new_P(float **P, float **Pold, float *k, float *z, float l, int Nr, ff_pool *p)
   {
     ff_pool::map(p, 0, Nr + 1, Compute_new_P(), 0, Nr + 1, P, Pold, k, z, l);

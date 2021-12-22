@@ -14,6 +14,9 @@
 #include <sstream>
 #include "matplotlibcpp.h"
 
+/*
+* this was the absolute first, sequential version of the main file
+*/
 
 //#include "matplotlib-cpp/matplotlibcpp.h"
 namespace plt = matplotlibcpp;

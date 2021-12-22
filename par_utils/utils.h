@@ -77,6 +77,7 @@ using namespace std;
   error_norms.push_back(sqrt(s)); \
   cnt++;
 
+// resets matrices to restart training
 tuple<float **, float **, float **, float **> prepare_matrices(int Nr, int Ny, float **Wout, float **Wold, float **P, float **Pold, float nabla)
 {
   Wout = zeros(Ny, Nr + 1, Wout);
@@ -86,6 +87,7 @@ tuple<float **, float **, float **, float **> prepare_matrices(int Nr, int Ny, f
   return make_tuple(Wout, Wold, P, Pold);
 }
 
+// resets vector to restart training
 tuple<float *, float *, float *, float *, float *, float *, float *> prepare_vectors(int Nr, float *x, float *x_rec, float *x_in, float *x_old, float *k, float *z, float *y)
 {
   x = zeros(Nr + 1, x);
@@ -99,6 +101,8 @@ tuple<float *, float *, float *, float *, float *, float *, float *> prepare_vec
   return make_tuple(x, x_rec, x_in, x_old, k, z, y);
 }
 
+// d: desired output,
+// y: actual output
 float compute_error(float *d, float *y, int Ny)
 {
   float s = 0;
@@ -292,6 +296,7 @@ void compute_new_P_ff(float **P, float **Pold, float *k, float *z, float l, int 
     }                                                                       \
   }
 
+// fills up Par data strucure
 #define pack_values(Par)         \
   {                              \
     Par.Nr = Nr;                 \
@@ -314,6 +319,7 @@ void compute_new_P_ff(float **P, float **Pold, float *k, float *z, float l, int 
     Par.y = y;                   \
   }
 
+// gets values stored in Par data strucure
 #define unpack_values(Par)        \
   {                               \
     Nr = Par->Nr;                 \
