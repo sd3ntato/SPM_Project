@@ -56,6 +56,25 @@ using namespace std;
   scalabilities = compute_scalabilities(times);                                                                                                                       \
   efficiencies = compute_effieciencies(speedups);
 
+#define dump_one(filename, arr, method)            \
+  {                                                \
+    ofstream out_file(filename);                   \
+    if (out_file.is_open())                        \
+    {                                              \
+      out_file << Nr << " neurons " << endl;       \
+                                                   \
+      out_file << "seq time: " << t0 << endl;      \
+                                                   \
+      out_file << method << endl;                  \
+                                                   \
+      for (int i = 1; i < max_par_degree + 1; i++) \
+      {                                            \
+        out_file << arr[i] << " ";                 \
+        out_file << endl;                          \
+      }                                            \
+    }                                              \
+  }
+
 /* saves the statics computed up to now into
 * apposite output file named "out"
 */

@@ -57,19 +57,22 @@ int main()
 
     //without fastflow (my pool)
     compute_statistics("none", times_none, speedups_none, scalabilities_none, efficiencies_none);
+    dump_one("none_times", times_none, "none");
 
     // with fastflow parallel_for
     compute_statistics("parfor", times_parfor, speedups_parfor, scalabilities_parfor, efficiencies_parfor);
+    dump_one("parfor_times", times_parfor, "parfor");
 
     // with my implementation of pool in fastflow
     compute_statistics("ff_pool", times_ff_pool, speedups_ff_pool, scalabilities_ff_pool, efficiencies_ff_pool);
+    dump_one("ff_pool_times", times_ff_pool, "ff_pool");
 
     // with mdf model + ff_pool
     //compute_statistics("mdf", times_mdf, speedups_mdf, scalabilities_mdf, efficiencies_mdf);
 
     /* plot the collected stats and dump them into file "out" */
-    do_plots();
-    dump_statistics();
+    //do_plots();
+    //dump_statistics();
   }
 
   cout << "\ndone!\n";

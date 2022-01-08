@@ -146,6 +146,7 @@ struct ff_pool
   // makes the emitter push EOS to all workers
   void terminate()
   {
+    farm->stop();
     taskq->push(nullptr);
   }
 
