@@ -24,3 +24,8 @@ The results are dumped on apposite text files.
 - par0.cpp is the file with the main function.
 - plots_and_stats.ipynb is the python notebook that used to generate the final plots and stats reported on the project. The plots inside were made with data in the numerical_results_on_report folder.
 - you can also find the report in report.pdf 
+
+## other stuff
+To check that vectorization is correct:
+
+g++ -fdiagnostics-color=always -g par0.cpp linear_algebra/linear_algebra.cpp ESN/ESN.cpp par_utils/utimer.cpp -pthread -lpython3.8 -o par0 -pipe -O3 -I/usr/include/python3.8 -I ./spectra/include -I ./eigen -I ./matplotlib-cpp/ -I./linear_algebra -I./ESN -I./par_utils -I./fastflow -fopt-info-vec-missed 2> >(grep par_utils/basic_calculations.hpp)
