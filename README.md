@@ -26,6 +26,6 @@ The results are dumped on apposite text files.
 - you can also find the report in report.pdf 
 
 ## other stuff
-To check that vectorization is correct:
+To check that vectorization is correct, have to compile with -fopt-inf-vec-missed and grep the loops in the par_utils/basic_calculations.hpp file. Indeed, this file contains the basic calculations whose vectorization is particularily interesting :
 
 g++ -fdiagnostics-color=always -g par0.cpp linear_algebra/linear_algebra.cpp ESN/ESN.cpp par_utils/utimer.cpp -pthread -lpython3.8 -o par0 -pipe -O3 -I/usr/include/python3.8 -I ./spectra/include -I ./eigen -I ./matplotlib-cpp/ -I./linear_algebra -I./ESN -I./par_utils -I./fastflow -fopt-info-vec-missed 2> >(grep par_utils/basic_calculations.hpp)
