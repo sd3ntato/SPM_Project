@@ -1,6 +1,18 @@
 # SPM_Project
 This is the repository for my SPM project.
 For this project I brought 4 parallel implementations of the Recursive Least Square (RLS) online training algorithm for Echo State Networks (ESN). Of these, one uses standard instruments from c++ programming language, while the other three use a library for parallel computation known as FastFlow.
+
+
+copied from par0.cpp:
+
+// WHERE TO LOOK TO GET TO THE GIST FAST
+
+// most interesting flow is: 
+
+// par0.cpp::main-> metrics_computation.hpp::compute_statistics -> metrics_computation.hpp::compute_average_time -> parallel_functs.h::par_train
+
+// then, the function par_train in file parallel_functs.h distinguishes the various implementations and does the training
+
 ## submodules:
 Fisrst of all, the project needs [Fastflow](https://github.com/fastflow/fastflow) library to work.
 Then, the project needs [Eigen](https://gitlab.com/libeigen/eigen) and [Spectra](https://github.com/yixuan/spectra/) libraries to run. They are needed for linear algebra that is in turn necessary to generate the contractive recurrent matrix of the reservoir in the ESN

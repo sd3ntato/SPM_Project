@@ -24,6 +24,11 @@
 
 using namespace std;
 
+// WHERE TO LOOK TO GET TO THE GIST FAST
+// most interesting flow is: 
+// par0.cpp::main-> metrics_computation.hpp::compute_statistics -> metrics_computation.hpp::compute_average_time -> parallel_functs.h::par_train
+// then, the function par_train in file parallel_functs.h distinguishes the various implementations and does the training
+
 int main()
 {
 
