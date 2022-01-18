@@ -16,9 +16,9 @@ Then, the project needs [Eigen](https://gitlab.com/libeigen/eigen) and [Spectra]
 ## how to run the project
 First of all, one needs to set up the submodules list above.  
 Once the dependencies are ready, you can edit the file par0.cpp to edit the parameters you find on the first lines of function main - namely scale of the problem, number of trials per training and maximum parallelism degree - uncomment the parts of the code that you want to run (running all the experiments altogheter takes a lot of time) and then compile by typing on terminal  
-make par0  
+`make par0`  
 then run it with  
-./par0  
+`./par0`  
 The results are dumped on apposite text files.  
 
 ## structure of the project
