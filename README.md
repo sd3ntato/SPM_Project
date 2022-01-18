@@ -1,6 +1,6 @@
 # SPM_Project
 This is the repository for my SPM project.
-For this project I brought 4 parallel implementations of the Recursive Least Square (RLS) online training algorithm for Echo State Networks (ESN). Of these, one uses standard instruments from c++ programming language, while the other three use a library for parallel computation known as FastFlow.
+For this project I brought 4 parallel implementations of the Recursive Least Square (RLS) online training algorithm for Echo State Networks (ESN). Of these, one uses standard instruments from c++ programming language, while the other three use a library for parallel computation known as FastFlow.  
 
 
 copied from par0.cpp:
@@ -12,16 +12,15 @@ copied from par0.cpp:
 ## submodules:
 Fisrst of all, the project needs [Fastflow](https://github.com/fastflow/fastflow) library to work.
 Then, the project needs [Eigen](https://gitlab.com/libeigen/eigen) and [Spectra](https://github.com/yixuan/spectra/) libraries to run. They are needed for linear algebra that is in turn necessary to generate the contractive recurrent matrix of the reservoir in the ESN
+
 ## how to run the project
-Once the dependencies are ready, you can edit the file par0.cpp to edit the parameters you find on the first lines of function main - namely scale of the problem, number of trials per training and maximum parallelism degree - uncomment the parts of the code that you want to run (running all the experiments altogheter takes a lot of time) and then type on terminal
+First of all, one needs to set up the submodules list above.  
+Once the dependencies are ready, you can edit the file par0.cpp to edit the parameters you find on the first lines of function main - namely scale of the problem, number of trials per training and maximum parallelism degree - uncomment the parts of the code that you want to run (running all the experiments altogheter takes a lot of time) and then compile by typing on terminal  
+make par0  
+then run it with  
+./par0  
+The results are dumped on apposite text files.  
 
-make par0
-
-to compile the executable and then run it with 
-
-./par0
-
-The results are dumped on apposite text files.
 ## structure of the project
 - The ESN folder contains code for the ESN class 
 - The linear_algebra folder contains code that is mainly used for generation of the ESN member objects, It is also needed for statistics-computation and to read dataset
